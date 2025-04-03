@@ -159,7 +159,8 @@ foreach ($srvr in $svrs) {
                                 # 429 backoff
                                 if ($_ -match "429") {
                                     Write-Host "Recieved 429 response! Backing off for (60 * $backoff_mod)s."
-                                    Start-Sleep -Seconds 60 * $backoff_mod
+                                    Start-Sleep -Seconds (60 * $backoff_mod)
+                                    $backoff_mod += 1
                                 }
                                 elseif ($_ -match "401") {
                                     Read-Host "Access Token has expired or you are not on VPN! Fix the issue and press enter to continue"
@@ -177,7 +178,8 @@ foreach ($srvr in $svrs) {
                     # 429 backoff
                     if ($_ -match "429") {
                         Write-Host "Recieved 429 response! Backing off for (60 * $backoff_mod)s."
-                        Start-Sleep -Seconds 60 * $backoff_mod
+                        Start-Sleep -Seconds (60 * $backoff_mod)
+                        $backoff_mod += 1
                     }
                     elseif ($_ -match "401") {
                         Read-Host "Access Token has expired or you are not on VPN! Fix the issue and press enter to continue"
@@ -196,7 +198,8 @@ foreach ($srvr in $svrs) {
         # 429 backoff
         if ($_ -match "429") {
             Write-Host "Recieved 429 response! Backing off for (60 * $backoff_mod)s."
-            Start-Sleep -Seconds 60 * $backoff_mod
+            Start-Sleep -Seconds (60 * $backoff_mod)
+            $backoff_mod += 1
         }
         elseif ($_ -match "401") {
             Read-Host "Access Token has expired or you are not on VPN! Fix the issue and press enter to continue"
