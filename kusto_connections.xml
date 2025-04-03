@@ -1,0 +1,243 @@
+<?xml version="1.0"?>
+<ArrayOfServerDescriptionBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>1es</Name>
+    <Details>https://1es.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://1es.kusto.windows.net;Initial Catalog=NetDefaultDB</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Accprod</Name>
+    <Details>Data Source=https://accprod.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://accprod.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Adebi</Name>
+    <Details>https://adebi.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://adebi.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Adfcus</Name>
+    <Details>https://adfcus.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://adfcus.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Aks</Name>
+    <Details>Data Source=https://aks.kusto.windows.net:443;Initial Catalog=AKSprod;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://aks.kusto.windows.net:443;Initial Catalog=AKSprod;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Armprod</Name>
+    <Details>Data Source=https://armprod.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://armprod.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Asrcluscus</Name>
+    <Details>https://asrcluscus.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://asrcluscus.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Asrclussea</Name>
+    <Details>https://asrclussea.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://asrclussea.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Asrcluswe</Name>
+    <Details>https://asrcluswe.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://asrcluswe.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azcompute</Name>
+    <Details>https://azcompute.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azcompute.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azcrp</Name>
+    <Details>Data Source=https://azcrp.kusto.windows.net:443;Initial Catalog=crp_allprod;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://azcrp.kusto.windows.net:443;Initial Catalog=crp_allprod;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azcsup</Name>
+    <Details>Data Source=https://azcsup.kusto.windows.net:443;Initial Catalog=NetDefaultDB</Details>
+    <ConnectionString>Data Source=https://azcsup.kusto.windows.net:443;Initial Catalog=NetDefaultDB</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azcsup</Name>
+    <Details>https://Azcsup.kusto.windows.net </Details>
+    <ConnectionString>Data Source=https://azcsup.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azds</Name>
+    <Details>Data Source=https://azds.kusto.windows.net:443;Initial Catalog=adscosmosdata;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://azds.kusto.windows.net:443;Initial Catalog=adscosmosdata;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azlinux</Name>
+    <Details>https://azlinux.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azlinux.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Aznw</Name>
+    <Details>https://aznw.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://aznw.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azportal</Name>
+    <Details>https://azportal.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azportal.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azsc</Name>
+    <Details>https://azsc.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azsc.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azsearch</Name>
+    <Details>https://azsearch.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azsearch.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azsupport</Name>
+    <Details>https://azsupport.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azsupport.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azurebatch</Name>
+    <Details>https://azurebatch.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azurebatch.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azurecm</Name>
+    <Details>https://azurecm.kusto.windows.net:443</Details>
+    <ConnectionString>Data Source=https://azurecm.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azuredcm</Name>
+    <Details>https://azuredcm.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azuredcm.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azuredmprod</Name>
+    <Details>https://azuredmprod.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azuredmprod.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azureinsights</Name>
+    <Details>https://azureinsights.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azureinsights.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azureslam</Name>
+    <Details>https://azureslam.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://azureslam.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Disks</Name>
+    <Details>Data Source=https://disks.kusto.windows.net:443;Initial Catalog=Disks;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://disks.kusto.windows.net:443;Initial Catalog=Disks;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Documentdb</Name>
+    <Details>https://documentdb.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://documentdb.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Executiongraph</Name>
+    <Details>Data Source=https://executiongraph.kusto.windows.net:443;Initial Catalog=eg;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://executiongraph.kusto.windows.net:443;Initial Catalog=eg;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Icmcluster</Name>
+    <Details>https://icmcluster.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://icmcluster.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Lens</Name>
+    <Details>https://lens.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://lens.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Mabprod1</Name>
+    <Details>https://mabprod1.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://mabprod1.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Mabprodweu</Name>
+    <Details>https://mabprodweu.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://mabprodweu.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Mabprodwus</Name>
+    <Details>https://mabprodwus.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://mabprodwus.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Netperf</Name>
+    <Details>https://netperf.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://netperf.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Nhub</Name>
+    <Details>https://nhub.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://nhub.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Oaasprod</Name>
+    <Details>https://oaasprod.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://oaasprod.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Rdos</Name>
+    <Details>https://rdos.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://rdos.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Rdosdata</Name>
+    <Details>https://rdosdata.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://rdosdata.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Rome</Name>
+    <Details>https://rome.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://rome.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>U360sec</Name>
+    <Details>https://u360sec.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://u360sec.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Usage360</Name>
+    <Details>https://Usage360.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://usage360.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Vmainsight</Name>
+    <Details>https://vmainsight.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://vmainsight.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Centennial</Name>
+    <Details>https://centennial.westus.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://centennial.westus.kusto.windows.net;Initial Catalog=NetDefaultDB</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Supportrptwus3prod</Name>
+    <Details>https://supportrptwus3prod.westus3.kusto.windows.net/</Details>
+    <ConnectionString>Data Source=https://supportrptwus3prod.westus3.kusto.windows.net;Initial Catalog=NetDefaultDB</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>S360prodro</Name>
+    <Details>https://s360prodro.kusto.windows.net</Details>
+    <ConnectionString>Data Source=https://s360prodro.kusto.windows.net;Initial Catalog=NetDefaultDB</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Azrelquality</Name>
+    <Details>Data Source=https://azrelquality.centralus.kusto.windows.net;Initial Catalog=r2dreporting;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://azrelquality.centralus.kusto.windows.net;Initial Catalog=r2dreporting;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+  <ServerDescriptionBase xsi:type="ServerDescription">
+    <Name>Disksbi</Name>
+    <Details>Data Source=https://disksbi.kusto.windows.net;Initial Catalog=DisksBI;AAD Federated Security=True</Details>
+    <ConnectionString>Data Source=https://disksbi.kusto.windows.net;Initial Catalog=DisksBI;AAD Federated Security=True</ConnectionString>
+  </ServerDescriptionBase>
+</ArrayOfServerDescriptionBase>
