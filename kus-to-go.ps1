@@ -214,6 +214,6 @@ foreach ($srvr in $svrs) {
         "Metadata"        = $cluster
     }
     #
-    Set-Content -Value ($output | ConvertTo-Json -dept 10) -Path ".\out\$srvr_name.json"
+    Set-Content -Value ($output | ConvertTo-Json -dept 10) -Path ".\output_raw\$srvr_name.json"
     #
 }
