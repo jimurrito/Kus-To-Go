@@ -1,7 +1,8 @@
 # Kus-to-go
+
 Kusto metadata scrapper.
 
-[[TOC]]
+[[ TOC ]]
 
 ## FAQ
 
