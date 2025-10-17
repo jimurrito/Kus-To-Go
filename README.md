@@ -6,19 +6,22 @@ Kusto metadata scraper.
 
 ## Table of Contents
 
-- #faq
-  - #what-is-this
-  - #what-is-kusto-metadata-do-you-mean-the-data-stored-in-the-tables
-- #how-to-use-kus-to-gops1
-  - #requirements
-  - #retrieve-an-access-token-for-kusto
-  - #generating-a-kusto_connectionsxml-file
-  - #expected-file-structure
-  - #run-the-script
-  - #get-the-output-files
-  - #considerations
-- #data-manipulation
-  - #compressps1
+- #kus-to-go
+  - #table-of-contents
+  - #faq
+    - #what-is-this
+    - #what-is-_kusto-metadata_-do-you-mean-the-data-stored-in-the-tables
+  - #how-to-use-kus-to-gops1
+    - #requirements
+    - #retrieve-an-access-token-for-kusto
+    - #generating-a-kusto_connectionsxml-file
+    - #expected-file-structure
+    - #run-the-script
+    - #get-the-output-files
+    - #considerations
+  - #data-manipulation
+    - #compressps1
+
 
 ---
 
