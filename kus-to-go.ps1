@@ -2,12 +2,12 @@
 # Metadata scrapper for Kusto
 #
 
-# token
-# 
-# IN CLOUDSHELL
-# - az login
-# - az account get-access-token --resource "https://api.kusto.windows.net" --query "accessToken"
-#
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$tenantId
+)
+
+import-module ./kus-to-go.psm1
 
 #
 # get connections .xml data
@@ -23,7 +23,7 @@ foreach ($srvr in $svrs) {
     $backoff_mod = 1
     #
     #
-    $token = Get-Content .\access_token
+    $token = get-accessToken -tenantId
     #
     $headers = @{
         "Authorization" = "Bearer $token"
@@ -164,7 +164,7 @@ foreach ($srvr in $svrs) {
                                 }
                                 elseif ($_ -match "401") {
                                     Read-Host "Access Token has expired or you are not on VPN! Fix the issue and press enter to continue"
-                                }  
+                                }
                             }
                             #
                             # Add Table to Database Map
@@ -182,8 +182,9 @@ foreach ($srvr in $svrs) {
                         $backoff_mod += 1
                     }
                     elseif ($_ -match "401") {
-                        Read-Host "Access Token has expired or you are not on VPN! Fix the issue and press enter to continue"
-                    }  
+                        Write-host "Access Token has expired or you are not on VPN!"
+                        $token = get-accessToken -tenantId
+                    }
                 }
                 #
                 # Add Database info to cluster map
@@ -202,8 +203,9 @@ foreach ($srvr in $svrs) {
             $backoff_mod += 1
         }
         elseif ($_ -match "401") {
-            Read-Host "Access Token has expired or you are not on VPN! Fix the issue and press enter to continue"
-        }  
+            Write-host "Access Token has expired or you are not on VPN!"
+            $token = get-accessToken -tenantId
+        }
     }
     #
     # Output from cluster run
