@@ -1,29 +1,53 @@
 #
 # Metadata scrapper for Kusto
 #
-
 param(
     [Parameter(Mandatory = $true)]
     [string]$tenantId
 )
 
+
+# Check if required output folders exist, create if not
+if (-not(Test-Path Logs/ -PathType Container)) {
+    New-Item -path Logs/ -ItemType Directory
+}
+if (-not(Test-Path output_raw/ -PathType Container)) {
+    New-Item -path output_raw/ -ItemType Directory
+}
+
+$error_log="Logs/" + $(Get-Date -Format "yyMd.HH.mm") + ".log"
+
+Add-LogData -log_name $error_log -log_level INFO -log_message "Initializing Script"
 import-module ./kus-to-go.psm1
 
 #
 # get connections .xml data
+Add-LogData -log_name $error_log -log_level INFO -log_message "Importing connections.xml"
 [xml]$connections = Get-Content .\kusto_connections.xml
 $svrs = $connections.ArrayOfServerDescriptionBase.ServerDescriptionBase | select-object Name, Details
 
 #
 # Work on each endpoint
 foreach ($srvr in $svrs) {
+    # Check last completion time for this server, skip if recent AND "connected" on previous run
+    if (Test-Path -Path ".\output_raw\$($srvr.Name).json") {
+        $existingJson = get-content ".\output_raw\$($srvr.Name).json" -Raw | ConvertFrom-Json
+        $completedDate = [DateTime]::Parse($existingJson.DateCompleted)
+        $timeDiff = (Get-Date) - $completedDate
+        if ($timeDiff.TotalHours -lt 240 -and $existingJson.Metadata.Connected) {
+            Add-LogData -log_name $error_log -log_level INFO -log_message ("Skipping '$($srvr.Name)' as it was completed recently on $($existingJson.DateCompleted).")
+            Write-Host "Skipping '$($srvr.Name)' as it was completed recently on $($existingJson.DateCompleted)."
+            continue
+        }
+    }
     # Script metadata
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
     $request_acc = 0
-    $backoff_mod = 1
+    $backoff_mod = 0
     #
     #
-    $token = get-accessToken -tenantId
+    Add-LogData -log_name $error_log -log_level INFO -log_message "Acquiring Token"
+    $token = get-accessToken -tenantId $tenantId #Silly jmurrito forgot to add the variable they created!
     #
     $headers = @{
         "Authorization" = "Bearer $token"
@@ -56,6 +80,7 @@ foreach ($srvr in $svrs) {
     #
     # Create URI
     $get_db_uri = "$srvr_url/v1/rest/mgmt?csl=.show%20databases"
+    Add-LogData -log_name $error_log -log_level INFO -log_message ("Scraping Cluster '$srvr_name' => '$get_db_uri'.")
     Write-host "Scraping Cluster '$srvr_name' => '$get_db_uri'."
     # Run REST API request
     try {
@@ -76,7 +101,8 @@ foreach ($srvr in $svrs) {
         # get count
         $db_count = $db_names.Count
         #
-        Write-Host "Cluster '$srvr_name' has ($db_count) database(s)."
+        Add-LogData -log_name $error_log -log_level INFO -log_message ("Cluster '$srvr_name' has ($db_count) database(s).")
+        #Write-Host "Cluster '$srvr_name' has ($db_count) database(s)."
         #
         # only continue if count > 0
         if ($db_count -gt 0 ) {
@@ -93,7 +119,8 @@ foreach ($srvr in $svrs) {
                 # make URI
                 $get_tb_uri = "$srvr_url/v1/rest/mgmt?csl=.show%20tables&db=$db_name"
                 #
-                Write-host "Scraping Tables '$srvr_name' | '$db_name' => '$get_tb_uri'."
+                Add-LogData -log_name $error_log -log_level INFO -log_message ("Scraping Tables '$srvr_name' | '$db_name' => '$get_tb_uri'.")
+                #Write-host "Scraping Tables '$srvr_name' | '$db_name' => '$get_tb_uri'."
                 #
                 # Make request for DB Tables
                 try {
@@ -112,7 +139,8 @@ foreach ($srvr in $svrs) {
                     # Table count
                     $tb_count = $table_names.Count
                     #
-                    Write-Host "Database '$db_name' has ($tb_count) tables(s)."
+                    Add-LogData -log_name $error_log -log_level INFO -log_message ("Database '$db_name' has ($tb_count) tables(s).")
+                    #Write-Host "Database '$db_name' has ($tb_count) tables(s)."
                     #
                     #
                     # Continue only if there are tables within the DB
@@ -128,7 +156,8 @@ foreach ($srvr in $svrs) {
                             #
                             # make URI
                             $get_tb_col_uri = "$srvr_url/v1/rest/mgmt?csl=.show%20table%20$tb_name%20&db=$db_name"
-                            Write-host "Scraping Table Columns '$srvr_name' | '$db_name($tb_name)' => '$get_tb_col_uri'."
+                            Add-LogData -log_name $error_log -log_level INFO -log_message ("Scraping Table Columns '$srvr_name' | '$db_name($tb_name)' => '$get_tb_col_uri'.")
+                            #Write-host "Scraping Table Columns '$srvr_name' | '$db_name($tb_name)' => '$get_tb_col_uri'."
                             #
                             # Make request
                             try {
@@ -147,7 +176,8 @@ foreach ($srvr in $svrs) {
                                 # Table count
                                 $tb_count = $table_cols.Count
                                 #
-                                Write-Host "Table '$tb_name' has ($tb_count) columns."
+                                Add-LogData -log_name $error_log -log_level INFO -log_message ("Table '$tb_name' has ($tb_count) columns.")
+                                #Write-Host "Table '$tb_name' has ($tb_count) columns."
                                 #
                                 # Write to tabl map
                                 $table.Columns = $table_cols
@@ -156,14 +186,15 @@ foreach ($srvr in $svrs) {
                             # Failed to get Columns for tables
                             catch {
                                 Write-Host "'$srvr_name' failed to connect via RestAPI. Error: [$_]"
+                                Add-LogData -log_name $error_log -log_level ERROR -log_message ("'$srvr_name' failed to connect via RestAPI. Error: [$_]")
                                 # 429 backoff
                                 if ($_ -match "429") {
-                                    Write-Host "Recieved 429 response! Backing off for (60 * $backoff_mod)s."
-                                    Start-Sleep -Seconds (60 * $backoff_mod)
-                                    $backoff_mod += 1
+                                    $backoff_mod = set-backoff -backoff_mod $backoff_mod -error_log $error_log
                                 }
                                 elseif ($_ -match "401") {
-                                    Read-Host "Access Token has expired or you are not on VPN! Fix the issue and press enter to continue"
+                                    Add-LogData -log_name $error_log -log_level INFO -log_message ("Refreshing Token.")
+                                    Write-host "Access Token has expired or you are not on VPN!"
+                                    $token = get-accessToken -tenantId $tenantId #in. Every. Incarnation.
                                 }
                             }
                             #
@@ -174,16 +205,16 @@ foreach ($srvr in $svrs) {
                 }
                 # Failed to call Rest to get Tables
                 catch {
+                    Add-LogData -log_name $error_log -log_level ERROR -log_message ("'$srvr_name' failed to connect via RestAPI. Error: [$_]")
                     Write-Host "'$srvr_name' failed to connect via RestAPI. Error: [$_]"
                     # 429 backoff
                     if ($_ -match "429") {
-                        Write-Host "Recieved 429 response! Backing off for (60 * $backoff_mod)s."
-                        Start-Sleep -Seconds (60 * $backoff_mod)
-                        $backoff_mod += 1
+                        $backoff_mod = set-backoff -backoff_mod $backoff_mod -error_log $error_log
                     }
                     elseif ($_ -match "401") {
+                        Add-LogData -log_name $error_log -log_level INFO -log_message ("Refreshing Token.")
                         Write-host "Access Token has expired or you are not on VPN!"
-                        $token = get-accessToken -tenantId
+                        $token = get-accessToken -tenantId $tenantId
                     }
                 }
                 #
@@ -195,26 +226,29 @@ foreach ($srvr in $svrs) {
     }
     # Failed to call Cluster to get Databases
     catch {
+        Add-LogData -log_name $error_log -log_level ERROR -log_message ("'$srvr_name' failed to connect via RestAPI. Error: [$_]")
         Write-Host "'$srvr_name' failed to connect via RestAPI. Error: [$_]"
         # 429 backoff
         if ($_ -match "429") {
-            Write-Host "Recieved 429 response! Backing off for (60 * $backoff_mod)s."
-            Start-Sleep -Seconds (60 * $backoff_mod)
-            $backoff_mod += 1
+            $backoff_mod = set-backoff -backoff_mod $backoff_mod -error_log $error_log
         }
         elseif ($_ -match "401") {
+            Add-LogData -log_name $error_log -log_level INFO -log_message ("Refreshing Token.")
             Write-host "Access Token has expired or you are not on VPN!"
-            $token = get-accessToken -tenantId
+            $token = get-accessToken -tenantId $tenantId
         }
     }
     #
     # Output from cluster run
     $stopwatch.Stop()
     $output = @{
+        "DateCompleted"    = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
         "DurationSeconds" = $stopwatch.Elapsed.TotalSeconds
         "APIRequestCount" = $request_acc
         "Metadata"        = $cluster
     }
+    Add-LogData -log_name $error_log -log_level INFO -log_message ("Run complete after " + $stopwatch.Elapsed.TotalSeconds + 's')
+    write-host "Scrape complete after " + $stopwatch.Elapsed.TotalSeconds + 's'
     #
     Set-Content -Value ($output | ConvertTo-Json -dept 10) -Path ".\output_raw\$srvr_name.json"
     #

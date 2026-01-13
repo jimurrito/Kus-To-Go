@@ -44,10 +44,12 @@ The primary focus of this script is to break down the schema of a large multi-cl
 
 - `kusto_connections.xml` file containing a list of Kusto cluster endpoints (exported from Kusto Explorer).  
 - `access_token` file containing an access token for your target Kusto environment.
+- `output_raw\` folder in the same directory as kust-to-go.ps1. This will be ignored via .gitignore. Autocreated if not present.
+- `Logs\` folder in the same directory as kust-to-go.ps1. This will be ignored via .gitignore. Autocreated if not present.
 
 ### Retrieve an access token for Kusto
 
-> This step may be removed in future builds.
+> This step has been removed in current build.
 
 To gain an access token, run the following in the Azure CLI:
 
@@ -85,7 +87,9 @@ If you do not want a connection scraped, manually remove it from the file.
 ```text
 kus-to-go/
 |
-|- access_token
+|- ...
+|- Logs/
+|- output_raw/
 |- kusto_connections.xml
 |- kus-to-go.ps1
 |- README.md
@@ -98,6 +102,11 @@ kus-to-go/
 
 ```powershell
 .\kus-to-go.ps1
+```
+Or
+
+```powershell
+.\kust-to-go.ps1 -tenantID <your superfly tenantID>
 ```
 
 ---
