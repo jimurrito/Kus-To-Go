@@ -17,8 +17,8 @@ if (-not(Test-Path output_raw/ -PathType Container)) {
 
 $error_log="Logs/" + $(Get-Date -Format "yyMd.HH.mm") + ".log"
 
-Add-LogData -log_name $error_log -log_level INFO -log_message "Initializing Script"
 import-module ./kus-to-go.psm1
+Add-LogData -log_name $error_log -log_level INFO -log_message "Initializing Script"
 
 #
 # get connections .xml data
