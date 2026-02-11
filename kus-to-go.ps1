@@ -1,18 +1,46 @@
 #
-# Metadata scrapper for Kusto
+#
+# Kus-to-go - Kusto Metadata Scrapper
+#
+# Written by:
+# - James Immer
+# - Creston Lockerd
+# - Func documentation by Copilot
+#
+#
+# High-Level Architecture
+#
+# - Acquires an Access token for Kusto.
+# - Grabs clusters from the Kusto-exported 'connections.xml' file.
+# - Iterates Clusters.
+# - Uses Cluster name to call an API for the databases.
+# - Iterates the Databases.
+# - Uses Cluster name + Database name to get tables via API call.
+# - Iterates tables.
+# - Uses Cluster name, Database name, and table name to get column via API call.
+# - All data is compiled to one excel sheet per-Cluster [$output/<cluster_name>.xlsx]
+# - Data is stored in rows per-table
+#   <Column structure>
+#       Cluster | Database | Table | Column(s)
+#
+#
+
 #
 param(
     [Parameter(Mandatory = $true)]
-    [string]$tenantId,
+    [string]$TenantId,
 
     [ValidateSet("INFO", "WARN", "ERROR", "DEBUG")]
-    [string]$log_level = "INFO",
+    [string]$LogLevel = "INFO",
 
-    [string]$log_dir = "./logs/",
+    [string]$LogDir = "./logs/",
 
-    [string]$output = "./output_raw/",
+    [string]$Output = "./output/",
     
-    [string]$connections_xml = "./kusto_connections.xml"
+    [string]$ConnectionsXML = "./kusto_connections.xml",
+
+    # Force will ignore if a file already exists, and rescan the cluster anyways.
+    [switch]$Force
 )
 
 #
@@ -21,60 +49,62 @@ param(
 import-module $PSScriptRoot/modules/k2g-common.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-auth.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-http.psm1 -Force
+import-module $PSScriptRoot/modules/k2g-excel.psm1 -Force
 
 #
 # Create required Dirs. Ignore if dir already exists
-New-Item -Path $log_dir -ItemType Directory -Force | Out-Null
-New-Item -Path $output -ItemType Directory -Force | Out-Null
+New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
+New-Item -Path $Output -ItemType Directory -Force | Out-Null
 # Create log file and grab output absolute path
 # have to use "yyyy-MM-ddTh_m_s" as ':' is not valid for windows file names
-$OUTPUT_LOG = (New-Item -Path "$log_dir" -ItemType File -Name "$(Get-Date -Format "yyyy-MM-ddTh_m_s").log" -force).ResolvedTarget
+$OUTPUT_LOG = (New-Item -Path "$LogDir" -ItemType File -Name "$(Get-Date -Format "yyyy-MM-ddTh_m_s").log" -force).ResolvedTarget
 
 #
 # Changed write-log to use pipe to control logging based on env log level
-$log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Initializing Script"
+$LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Initializing Script"
 
 #
 # get connections from *.xml data
-$log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Importing connections.xml"
-[xml]$connections = Get-Content $connections_xml
-$svrs = $connections.ArrayOfServerDescriptionBase.ServerDescriptionBase | select-object Name, Details
-$log_level | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "[$($svrs.count)] Clusters found in [$connections_xml]"
+$LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Importing connections.xml"
+[xml]$connections = Get-Content $ConnectionsXML
+$clusters = $connections.ArrayOfServerDescriptionBase.ServerDescriptionBase | select-object Name, Details
+$LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "[$($clusters.count)] Clusters found in [$ConnectionsXML]"
+
+#
+# Create excel handler
+$LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Opening an Excel handler..."
+$excel = Initialize-Excel
 
 #
 # Initial login
-$log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Acquiring Token"
-$token = get-accessToken -tenantId $tenantId # Silly jmurrito forgot to add the variable they created!
-
-$token
-$token.IsExpired()
-
-exit  
-
-
+$LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Acquiring Token"
+$token = Get-AccessToken -tenantId $TenantId # Silly jmurrito forgot to add the variable they created!
 
 #
-# Work on each endpoint
-foreach ($srvr in $svrs) {
-    # Check last completion time for this server, skip if recent AND "connected" on previous run
-    if (Test-Path -Path ".\output_raw\$($srvr.Name).json") {
-        $existingJson = get-content ".\output_raw\$($srvr.Name).json" -Raw | ConvertFrom-Json
-        $completedDate = [DateTime]::Parse($existingJson.DateCompleted)
-        $timeDiff = (Get-Date) - $completedDate
-        if ($timeDiff.TotalHours -lt 240 -and $existingJson.Metadata.Connected) {
-            $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Skipping '$($srvr.Name)' as it was completed recently on $($existingJson.DateCompleted).")
-            Write-Host "Skipping '$($srvr.Name)' as it was completed recently on $($existingJson.DateCompleted)."
-            continue
-        }
+# Iterates through every Cluster in the connections xml.
+foreach ($cluster in $clusters) {
+    #
+    # check if cluster already has an excel file in the output dir
+    $excel_output = "${output}/$($cluster.Name).xlsx"
+    Test-Path -path $excel_output |
+    if ($_ -and !$force) {
+        # File already exists, and we are not forcing.
+        # Skip this cluster.
+        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Cluster [$($cluster.Name)] has already been scrapped to [$excel_output]. Skipping Cluster"
+        # Advances the for-loop to the next instance
+        continue
     }
-    # Script metadata
-    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+
+    #
+    # If you have made it this far, we will be scrapping the cluster
+
+ 
     $request_acc = 0
     $backoff_mod = 0
-    #
-    #
-    $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Acquiring Token"
-    $token = get-accessToken -tenantId $tenantId #Silly jmurrito forgot to add the variable they created!
+
+
+
+
     #
     $headers = @{
         "Authorization" = "Bearer $token"
@@ -83,32 +113,32 @@ foreach ($srvr in $svrs) {
     }
     #
     #
-    $srvr_name = $srvr.Name
-    $srvr_url = $srvr.Details
+    $cluster_name = $cluster.Name
+    $cluster_url = $cluster.Details
     #
     # clean url
-    $srvr_url = if ($srvr_url -match "Data Source=") {
+    $cluster_url = if ($cluster_url -match "Data Source=") {
         # removes data source tag
-        ($srvr_url.Replace("Data Source=", "") -split ":443" -split ";")[0]
+        ($cluster_url.Replace("Data Source=", "") -split ":443" -split ";")[0]
     }
     else {
-        $srvr_url
+        $cluster_url
     }
     #
     #
     # blank cluster output
     $cluster = @{
-        "Cluster"    = $srvr_name
-        "ClusterURI" = $srvr_url
+        "Cluster"    = $cluster_name
+        "ClusterURI" = $cluster_url
         "Connected"  = $false
         "Databases"  = @()
     }
     #
     #
     # Create URI
-    $get_db_uri = "$srvr_url/v1/rest/mgmt?csl=.show%20databases"
-    $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Scraping Cluster '$srvr_name' => '$get_db_uri'.")
-    Write-host "Scraping Cluster '$srvr_name' => '$get_db_uri'."
+    $get_db_uri = "$cluster_url/v1/rest/mgmt?csl=.show%20databases"
+    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Scraping Cluster '$cluster_name' => '$get_db_uri'.")
+    Write-host "Scraping Cluster '$cluster_name' => '$get_db_uri'."
     # Run REST API request
     try {
         $request_acc += 1
@@ -128,8 +158,8 @@ foreach ($srvr in $svrs) {
         # get count
         $db_count = $db_names.Count
         #
-        $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Cluster '$srvr_name' has ($db_count) database(s).")
-        #Write-Host "Cluster '$srvr_name' has ($db_count) database(s)."
+        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Cluster '$cluster_name' has ($db_count) database(s).")
+        #Write-Host "Cluster '$cluster_name' has ($db_count) database(s)."
         #
         # only continue if count > 0
         if ($db_count -gt 0 ) {
@@ -144,10 +174,10 @@ foreach ($srvr in $svrs) {
                 }
                 #
                 # make URI
-                $get_tb_uri = "$srvr_url/v1/rest/mgmt?csl=.show%20tables&db=$db_name"
+                $get_tb_uri = "$cluster_url/v1/rest/mgmt?csl=.show%20tables&db=$db_name"
                 #
-                $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Scraping Tables '$srvr_name' | '$db_name' => '$get_tb_uri'.")
-                #Write-host "Scraping Tables '$srvr_name' | '$db_name' => '$get_tb_uri'."
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Scraping Tables '$cluster_name' | '$db_name' => '$get_tb_uri'.")
+                #Write-host "Scraping Tables '$cluster_name' | '$db_name' => '$get_tb_uri'."
                 #
                 # Make request for DB Tables
                 try {
@@ -166,7 +196,7 @@ foreach ($srvr in $svrs) {
                     # Table count
                     $tb_count = $table_names.Count
                     #
-                    $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Database '$db_name' has ($tb_count) tables(s).")
+                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Database '$db_name' has ($tb_count) tables(s).")
                     #Write-Host "Database '$db_name' has ($tb_count) tables(s)."
                     #
                     #
@@ -182,9 +212,9 @@ foreach ($srvr in $svrs) {
                             }
                             #
                             # make URI
-                            $get_tb_col_uri = "$srvr_url/v1/rest/mgmt?csl=.show%20table%20$tb_name%20&db=$db_name"
-                            $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Scraping Table Columns '$srvr_name' | '$db_name($tb_name)' => '$get_tb_col_uri'.")
-                            #Write-host "Scraping Table Columns '$srvr_name' | '$db_name($tb_name)' => '$get_tb_col_uri'."
+                            $get_tb_col_uri = "$cluster_url/v1/rest/mgmt?csl=.show%20table%20$tb_name%20&db=$db_name"
+                            $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Scraping Table Columns '$cluster_name' | '$db_name($tb_name)' => '$get_tb_col_uri'.")
+                            #Write-host "Scraping Table Columns '$cluster_name' | '$db_name($tb_name)' => '$get_tb_col_uri'."
                             #
                             # Make request
                             try {
@@ -203,7 +233,7 @@ foreach ($srvr in $svrs) {
                                 # Table count
                                 $tb_count = $table_cols.Count
                                 #
-                                $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Table '$tb_name' has ($tb_count) columns.")
+                                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Table '$tb_name' has ($tb_count) columns.")
                                 #Write-Host "Table '$tb_name' has ($tb_count) columns."
                                 #
                                 # Write to tabl map
@@ -212,16 +242,16 @@ foreach ($srvr in $svrs) {
                             #
                             # Failed to get Columns for tables
                             catch {
-                                Write-Host "'$srvr_name' failed to connect via RestAPI. Error: [$_]"
-                                $log_level | Write-Log -file "$OUTPUT_LOG" -level ERROR -text ("'$srvr_name' failed to connect via RestAPI. Error: [$_]")
+                                Write-Host "'$cluster_name' failed to connect via RestAPI. Error: [$_]"
+                                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text ("'$cluster_name' failed to connect via RestAPI. Error: [$_]")
                                 # 429 backoff
                                 if ($_ -match "429") {
                                     $backoff_mod = set-backoff -backoff_mod $backoff_mod -error_log "$OUTPUT_LOG"
                                 }
                                 elseif ($_ -match "401") {
-                                    $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Refreshing Token.")
+                                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Refreshing Token.")
                                     Write-host "Access Token has expired or you are not on VPN!"
-                                    $token = get-accessToken -tenantId $tenantId #in. Every. Incarnation.
+                                    $token = get-accessToken -tenantId $TenantId #in. Every. Incarnation.
                                 }
                             }
                             #
@@ -232,16 +262,16 @@ foreach ($srvr in $svrs) {
                 }
                 # Failed to call Rest to get Tables
                 catch {
-                    $log_level | Write-Log -file "$OUTPUT_LOG" -level ERROR -text ("'$srvr_name' failed to connect via RestAPI. Error: [$_]")
-                    Write-Host "'$srvr_name' failed to connect via RestAPI. Error: [$_]"
+                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text ("'$cluster_name' failed to connect via RestAPI. Error: [$_]")
+                    Write-Host "'$cluster_name' failed to connect via RestAPI. Error: [$_]"
                     # 429 backoff
                     if ($_ -match "429") {
                         $backoff_mod = set-backoff -backoff_mod $backoff_mod -error_log "$OUTPUT_LOG"
                     }
                     elseif ($_ -match "401") {
-                        $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Refreshing Token.")
+                        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Refreshing Token.")
                         Write-host "Access Token has expired or you are not on VPN!"
-                        $token = get-accessToken -tenantId $tenantId
+                        $token = get-accessToken -tenantId $TenantId
                     }
                 }
                 #
@@ -253,30 +283,30 @@ foreach ($srvr in $svrs) {
     }
     # Failed to call Cluster to get Databases
     catch {
-        $log_level | Write-Log -file "$OUTPUT_LOG" -level ERROR -text ("'$srvr_name' failed to connect via RestAPI. Error: [$_]")
-        Write-Host "'$srvr_name' failed to connect via RestAPI. Error: [$_]"
+        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text ("'$cluster_name' failed to connect via RestAPI. Error: [$_]")
+        Write-Host "'$cluster_name' failed to connect via RestAPI. Error: [$_]"
         # 429 backoff
         if ($_ -match "429") {
             $backoff_mod = set-backoff -backoff_mod $backoff_mod -error_log "$OUTPUT_LOG"
         }
         elseif ($_ -match "401") {
-            $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Refreshing Token.")
+            $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Refreshing Token.")
             Write-host "Access Token has expired or you are not on VPN!"
-            $token = get-accessToken -tenantId $tenantId
+            $token = get-accessToken -tenantId $TenantId
         }
     }
     #
     # Output from cluster run
     $stopwatch.Stop()
-    $output = @{
+    $Output = @{
         "DateCompleted"   = (Get-Date -Format "yyyy-MM-ddTHH:mm:ssZ")
         "DurationSeconds" = $stopwatch.Elapsed.TotalSeconds
         "APIRequestCount" = $request_acc
         "Metadata"        = $cluster
     }
-    $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Run complete after " + $stopwatch.Elapsed.TotalSeconds + 's')
+    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text ("Run complete after " + $stopwatch.Elapsed.TotalSeconds + 's')
     write-host "Scrape complete after " + $stopwatch.Elapsed.TotalSeconds + 's'
     #
-    Set-Content -Value ($output | ConvertTo-Json -dept 10) -Path ".\output_raw\$srvr_name.json"
+    Set-Content -Value ($Output | ConvertTo-Json -dept 10) -Path ".\output_raw\$cluster_name.json"
     #
 }
