@@ -18,10 +18,9 @@ param(
 #
 # Imports
 # Uses "$PSScriptRoot" so the path is relative to the script and now the user working dir
-import-module $PSScriptRoot/modules/k2g-common.psm1
-import-module $PSScriptRoot/modules/k2g-auth.psm1
-import-module $PSScriptRoot/modules/k2g-http.psm1
-
+import-module $PSScriptRoot/modules/k2g-common.psm1 -Force
+import-module $PSScriptRoot/modules/k2g-auth.psm1 -Force
+import-module $PSScriptRoot/modules/k2g-http.psm1 -Force
 
 #
 # Create required Dirs. Ignore if dir already exists
@@ -36,12 +35,23 @@ $OUTPUT_LOG = (New-Item -Path "$log_dir" -ItemType File -Name "$(Get-Date -Forma
 $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Initializing Script"
 
 #
-# get connections .xml data
+# get connections from *.xml data
 $log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Importing connections.xml"
-[xml]$connections = Get-Content .\kusto_connections.xml
+[xml]$connections = Get-Content $connections_xml
 $svrs = $connections.ArrayOfServerDescriptionBase.ServerDescriptionBase | select-object Name, Details
+$log_level | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "[$($svrs.count)] Clusters found in [$connections_xml]"
 
-exit
+#
+# Initial login
+$log_level | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Acquiring Token"
+$token = get-accessToken -tenantId $tenantId # Silly jmurrito forgot to add the variable they created!
+
+$token
+$token.IsExpired()
+
+exit  
+
+
 
 #
 # Work on each endpoint

@@ -1,6 +1,6 @@
 #
 #
-# Kus-to-go library
+# Kus-to-go Common library
 #
 # Written by:
 # - James Immer
@@ -9,53 +9,7 @@
 #
 #
 
-#
-#
-#
-#
-#
-function Get-AccessToken {
-    <#
-    .SYNOPSIS
-    Retrieves an Azure access token for the Kusto (Azure Data Explorer) resource.
 
-    .DESCRIPTION
-    The Get-AccessToken function authenticates to Azure using the specified tenant ID
-    and then retrieves an access token scoped to the Kusto resource endpoint
-    (https://api.kusto.windows.net). The function returns only the raw token string.
-
-    .PARAMETER TenantId
-    The Azure Active Directory tenant ID used to authenticate with Azure CLI.
-
-    .EXAMPLE
-    Get-AccessToken -TenantId "00000000-0000-0000-0000-000000000000"
-
-    Logs into Azure using the provided tenant ID and returns a Kusto access token.
-
-    .EXAMPLE
-    $token = Get-AccessToken "<tenant-guid>"
-    Invoke-WebRequest -Uri "https://api.kusto.windows.net" -Headers @{ Authorization = "Bearer $token" }
-
-    Retrieves a token and uses it in an authenticated request.
-
-    .NOTES
-    Requires Azure CLI (az) to be installed and authenticated.
-    #>  
-    param (
-        [Parameter(Mandatory)]
-        [string]$TenantId
-    )
-    # Authenticate to Azure for the given tenant
-    $null = az login --allow-no-subscriptions -t $TenantId
-    # Retrieve and clean the access token
-    (az account get-access-token `
-        --resource "https://api.kusto.windows.net" `
-        --query "accessToken") -replace '"'
-}
-
-
-#
-#
 #
 #
 #
@@ -118,8 +72,6 @@ function Write-Log {
 }
 
 
-#
-#
 #
 #
 #
