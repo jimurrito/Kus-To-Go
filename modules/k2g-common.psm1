@@ -33,7 +33,7 @@ function Get-AccessToken {
     Logs into Azure using the provided tenant ID and returns a Kusto access token.
 
     .EXAMPLE
-    $token = Get-AccessToken "contoso-tenant-guid"
+    $token = Get-AccessToken "<tenant-guid>"
     Invoke-WebRequest -Uri "https://api.kusto.windows.net" -Headers @{ Authorization = "Bearer $token" }
 
     Retrieves a token and uses it in an authenticated request.
@@ -113,8 +113,7 @@ function Write-Log {
     }
     # Only write if message level is <= environment level
     if ($matrix.$level -le $matrix.$env_log_level) {
-        $timestamp = Get-Date -Format 'MMM  dd HH:mm:ss'
-        Add-Content -Path $file -Value "$timestamp $level $text"
+        Add-Content -Path $file -Value "$(Get-Date -Format "yyyy-MM-ddTh:m:s") $level $text"
     }
 }
 
