@@ -51,35 +51,41 @@ import-module $PSScriptRoot/modules/k2g-auth.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-http.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-excel.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-parse.psm1 -Force
+import-module $PSScriptRoot/modules/k2g-logger.psm1 -Force
 
 #
 # Create required Dirs. Ignore if dir already exists
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 New-Item -Path $Output -ItemType Directory -Force | Out-Null
+
 # Create log file and grab output absolute path
 # have to use "yyyy-MM-ddTh_m_s" as ':' is not valid for windows file names
-$OUTPUT_LOG = (New-Item -Path "$LogDir" -ItemType File -Name "$(Get-Date -Format "yyyy-MM-ddTh_m_s").log" -force).ResolvedTarget
+$output_log_path = (New-Item -Path "$LogDir" -ItemType File -Name "$(Get-Date -Format "yyyy-MM-ddThh_mm_ss").log" -force).ResolvedTarget
+
+#
+# Create Logger obj
+$LOGGER = New-Logger -EnvLogLevel $LogLevel -LogFile ($output_log_path)
 
 #
 # Changed write-log to use pipe to control logging based on env log level
-$LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Initializing Script"
+$LOGGER.LogInfo("Initializing Script")
 
 #
 # get cluster connections from *.xml data
-$LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Importing connections.xml"
+$LOGGER.LogInfo("Importing connections xml file provided")
 $clusters = $ConnectionsXML | Initialize-ConnectionsXML | Get-KClusters
-$LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "[$($clusters.count)] Clusters found in [$ConnectionsXML]"
+$LOGGER.LogDebug("[$($clusters.count)] Clusters found in [$ConnectionsXML]")
 
 #
 # Create excel handler
-$LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Opening an Excel handler..."
+$LOGGER.LogDebug("Opening an Excel handler...")
 $excel = Initialize-Excel
 
 #
 # Initial login
-$LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Acquiring Token"
+$LOGGER.LogInfo("Acquiring Token")
 $token = New-AccessToken -TenantId $TenantId # Silly jmurrito forgot to add the variable they created!
-$LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Token valid until [$($token.expiry)]"
+$LOGGER.LogInfo("Token valid until [$($token.expiry)]")
 
 
 #
@@ -91,48 +97,51 @@ $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Token valid until [
     if ((Test-Path -path $excel_output) -and !$force) {
         # File already exists, and we are not forcing.
         # Skip this cluster.
-        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Cluster [$($cluster.Name)] has already been scrapped to [$excel_output]. Skipping Cluster"
+        $LOGGER.LogDebug("Cluster [$($cluster.Name)] has already been scrapped to [$excel_output]. Skipping Cluster")
         # Advances the for-loop to the next instance
         continue CLUSTER_FOR
     }
 
     #
+    #
     # If you have made it this far, we will be scrapping the cluster metadata
+    #
+    #
     
     #
     # Create workbook + sheet via [ExcelWorkSpace] class
-    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Creating Excel workbook [$excel_output]..."
+    $LOGGER.LogDebug("Creating Excel workbook [$excel_output]...")
     $excel_workspace = $excel | New-ExcelWorkbook
     # Add header to excel sheet.
-    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Adding headers to Excel Workbook [$excel_output] sheet 1..."
+    $LOGGER.LogDebug("Adding headers to Excel Workbook [$excel_output] sheet (1) ...")
     $excel_workspace.AddRow(@("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details"))
 
     #
     # Validate token validity -> refresh if invalid due to time
     if ($token.IsExpired()) {
-        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Kusto Token has expired. Re-auth pop-up sent to user."
+        $LOGGER.LogWarn("Kusto Token has expired. Re-auth pop-up sent to user.")
         $token.Refresh()
     }
 
     #
     # Create Connection class
-    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Creating Connection class for cluster [$($cluster.name)]..."
+    $LOGGER.LogDebug("Creating Connection class for cluster [$($cluster.name)]...")
     $conn = New-ClusterConnection -ClusterUrl $cluster.url -Token $token.Token
 
     #
     # Stuck in loop until we hit a failure threshold, or succeed with databases
     :DBWhile while ($true) {
-        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Attempting to scrape Database(s) from [$($cluster.Name)]."
+        $LOGGER.LogInfo("Attempting to scrape Database(s) from [$($cluster.Name)].")
         # 
         # Check database query return
         $resp = $conn.GetDatabases()
         switch ($resp.code) {
             # Success
             200 {
-                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Returned [$($resp.data.Count)] Databases from Cluster [$($cluster.Name)]."
+                $LOGGER.LogInfo("Returned [$($resp.data.Count)] Databases from Cluster [$($cluster.Name)].")
                 # If we found no DBs, move to next cluster
                 if (!($resp.data.Count)) {
-                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "No Databases found in Cluster [$($cluster.Name)]. Moving to next cluster."
+                    $LOGGER.LogWarn("No Databases found in Cluster [$($cluster.Name)]. Moving to next cluster.")
                     # Advance cluster for loop
                     continue CLUSTER_FOR
                 }
@@ -145,40 +154,41 @@ $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Token valid until [
             }
             # 401 un-authorized. Token expired or no VPN
             401 {
-                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "401 returned while scrapping [$($cluster.Name)] for databases."
+                $LOGGER.LogWarn("401 returned while scrapping [$($cluster.Name)] for databases.")
                 $conn.failCount += 1
                 # hard coded failure limit of 3
                 # After 3 401(s) we should probably take the hint. No means no.
                 if ($conn.failCount -ge 3) {
-                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text "Failure limit for cluster has been reached [3]. Skipping Cluster."
+                    $LOGGER.LogError("Failure limit for cluster has been reached [3]. Skipping Cluster.")
                     # Advance cluster loop
                     continue CLUSTER_FOR
                 }
                 #
                 # verbose log and refresh token
-                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Fail counter for cluster [$($cluster.Name)] is now at [$($conn.failCount)]"
-                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Attempting reauthentication. Prompt sent to user..."
+                $LOGGER.LogDebug("Fail counter for cluster [$($cluster.Name)] is now at [$($conn.failCount)]")
+                $LOGGER.LogWarn("Attempting reauthentication. Prompt sent to user...")
                 $token.Refresh()
             }
             # 429 Too Many Requests
             429 {
-                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text "429 returned while scrapping [$($cluster.Name)] for databases."
+                $LOGGER.LogError("429 returned while scrapping [$($cluster.Name)] for databases.")
                 $conn.backoffCount += 1
                 # Hard coded backoff limit is 6
                 # 5th backoff would be 32 minutes log
                 # 6th backoff would be 64 minutes log, and this will cause the next request to reauth. Skips cluster to void prolonged waiting.
                 if ($conn.backoffCount -ge 6) {
-                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text "Backoff limit for cluster has been reached [6]. Skipping Cluster."
+                    $LOGGER.LogError("Backoff limit for cluster has been reached [6]. Skipping Cluster.")
                     # Advance cluster loop
                     continue CLUSTER_FOR
                 }
-                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Starting backoff #[$($conn.backoffCount)] for [$(60 * [math]::Pow(2, $conn.backoffCount))] seconds"
-                Start-Backoff $conn.backoffCount
+                $backoff_time = 60 * [math]::Pow(2, $backoff_mod)
+                $LOGGER.LogWarn("Starting backoff #[$($conn.backoffCount)] for [$backoff_time] seconds")
+                Start-Sleep $backoff_time
             }
             # Unknown/Unmapped error
             default {
-                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text "Unexpected error occurred while scrapping [$($cluster.Name)] for databases. Skipping Cluster."
-                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Unexpected error [ code: $($resp.data) data: $($resp.data)]"
+                $LOGGER.LogError("Unexpected error occurred while scrapping [$($cluster.Name)] for databases. Skipping Cluster.")
+                $LOGGER.LogDebug("Unexpected error [ code: $($resp.data) data: $($resp.data)]")
                 continue CLUSTER_FOR
             }
         }
