@@ -1,4 +1,4 @@
 access_token
 output*/
-kusto_connections*.xml
+./kusto*.xml
 logs*/
