@@ -15,13 +15,15 @@ class ExcelWorkspace {
 
     [System.__ComObject]$workbook
     [System.__ComObject]$sheet
+    [string]$filepath
     [int]$pointerX
     [int]$pointerY
 
     # Bindings for ::new
-    ExcelWorkspace([System.__ComObject]$workbook, [System.__ComObject]$sheet) {
+    ExcelWorkspace([System.__ComObject]$workbook, [System.__ComObject]$sheet, [string]$filepath) {
         $this.workbook = $workbook
         $this.sheet = $sheet
+        $this.filepath = $filepath
         $this.pointerX = 1
         $this.pointerY = 1
     }
@@ -37,6 +39,8 @@ class ExcelWorkspace {
 
     # Saves the excel workbook to the provided path
     [void] SaveAs([string]$path) { $this.workbook.SaveAs($path) }
+    # same as SaveAs/1 but pulls from the class
+    [void] SaveAs() { $this.SaveAs($this.filepath) }
 
     # same as InsertCell() but does not advance X
     # unsure the use-case, maybe helpful
@@ -111,57 +115,68 @@ function Initialize-Excel {
 function New-ExcelWorkbook {
     <#
     .SYNOPSIS
-    Creates a new Excel workbook using an existing Excel COM instance.
+        Creates a new Excel workbook using an existing Excel COM instance.
 
     .DESCRIPTION
-    New-ExcelWorkbook creates a new workbook within a running Excel COM automation
-    instance and returns an ExcelWorkspace object. The ExcelWorkspace wrapper
-    contains the workbook, the first worksheet, and internal cursor pointers used
-    for structured cell navigation and writing.
+        New-ExcelWorkbook creates a new workbook within a running Excel COM
+        automation instance and returns an ExcelWorkspace object. The
+        ExcelWorkspace wrapper contains the workbook, the first worksheet,
+        and internal cursor pointers used for structured cell navigation
+        and writing.
 
-    This function is intended to be used after calling Initialize-Excel, which
-    provides the Excel.Application COM object required to create the workbook.
+        This function is intended to be used after calling Initialize-Excel,
+        which provides the Excel.Application COM object required to create
+        the workbook.
 
     .PARAMETER Excel
-    The Excel.Application COM object returned by Initialize-Excel. This parameter
-    accepts pipeline input, allowing the Excel instance to be passed directly
-    through the pipeline.
+        The Excel.Application COM object returned by Initialize-Excel.
+        This parameter accepts pipeline input, allowing the Excel instance
+        to be passed directly through the pipeline.
+
+    .PARAMETER FilePath
+        Optional. A file path associated with the new workbook. This value
+        is passed into the ExcelWorkspace constructor and may be used for
+        default save locations or tracking where the workbook should be
+        written.
 
     .OUTPUTS
-    ExcelWorkspace
-        A strongly typed wrapper containing:
-        - The workbook COM object
-        - The first worksheet COM object
-        - Internal X/Y pointers for cell navigation
+        ExcelWorkspace
+            A strongly typed wrapper containing:
+            - The workbook COM object
+            - The first worksheet COM object
+            - Internal X/Y pointers for cell navigation
+            - The optional file path provided at creation time
 
     .EXAMPLE
-    $excel = Initialize-Excel
-    $workspace = New-ExcelWorkbook -Excel $excel
+        $excel = Initialize-Excel
+        $workspace = New-ExcelWorkbook -Excel $excel -FilePath "C:\temp\report.xlsx"
 
-    Creates a new workbook and returns an ExcelWorkspace instance for further
-    manipulation.
+        Creates a new workbook and associates it with a file path.
 
     .EXAMPLE
-    Initialize-Excel | New-ExcelWorkbook
+        Initialize-Excel | New-ExcelWorkbook
 
-    Demonstrates pipeline support. The Excel COM object produced by Initialize-Excel
-    is piped directly into New-ExcelWorkbook, returning an ExcelWorkspace instance.
+        Demonstrates pipeline support. The Excel COM object produced by
+        Initialize-Excel is piped directly into New-ExcelWorkbook.
 
     .NOTES
-    - Requires Microsoft Excel to be installed.
-    - Remember to call $excel.Quit() when finished to avoid leaving Excel.exe running.
+        - Requires Microsoft Excel to be installed.
+        - Remember to call $excel.Quit() when finished to avoid leaving
+          Excel.exe running.
     #>
 
     param(
         [Parameter(ValueFromPipeline, Mandatory)]
-        [System.__ComObject]$Excel
+        [System.__ComObject]$Excel,
+
+        [string]$FilePath
     )
 
     # Create a new workbook
     $workbook = $Excel.Workbooks.Add()
 
     # Return a new ExcelWorkspace instance
-    [ExcelWorkspace]::new($workbook, $workbook.Worksheets.Item(1))
+    [ExcelWorkspace]::new($workbook, $workbook.Worksheets.Item(1), $FilePath)
 }
 
 

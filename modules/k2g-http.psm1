@@ -41,9 +41,9 @@ class ClusterConnection {
     }
 
     #
-    # Retrieves the Databases for the connected Cluster
-    [hashtable] GetDatabases() {
-        $resp = Invoke-KustoRestRequest -uri "$($this.clusterUrl)/v1/rest/mgmt?csl=.show%20databases" -headers $this.headers
+    # Generic Rest call + parse core data
+    [hashtable] MakeRestRequest([string]$URI) {
+        $resp = Invoke-KustoRestRequest -uri "$URI" -headers $this.headers
         if (($resp.code) -eq 200) {
             # Parses JSON response and outputs list of databases
             $resp.data = ($resp.data | ConvertFrom-Json).tables[0].rows | ForEach-Object { $_[0] }
@@ -52,6 +52,43 @@ class ClusterConnection {
         else {
             return $resp
         }
+    }
+
+    #
+    #
+    #
+    # Retrieves the Databases for the connected Cluster
+    [hashtable] GetDatabases() {
+        return $this.MakeRestRequest("$($this.clusterUrl)/v1/rest/mgmt?csl=.show%20databases")
+    }
+
+    #
+    #
+    #
+    # Retrieve Tables for a given database within the connected cluster
+    [hashtable] GetTables([string]$DatabaseName) {
+        return $this.MakeRestRequest("$($this.clusterUrl)/v1/rest/mgmt?csl=.show%20tables&db=$DatabaseName")
+    }
+    # Retrieve Tables for a given database within the connected cluster
+    [hashtable] GetTables() {
+        return $this.GetTables($this.database)
+    }
+
+    #
+    #
+    #
+    #
+    # Retrieve Tables for a given database within the connected cluster
+    [hashtable] GetColumns([string]$DatabaseName, [string]$TableName) {
+        return $this.MakeRestRequest("$($this.clusterUrl)/v1/rest/mgmt?csl=.show%20table%20$TableName%20&db=$DatabaseName")
+    }
+    # Same as GetColumns/2 but does not require the database name
+    [hashtable] GetColumns([string]$TableName) {
+        return $this.GetColumns($this.database, $TableName)
+    }
+    # Same as GetColumns/2 but does not require the database name or table name
+    [hashtable] GetColumns() {
+        return $this.GetColumns($this.database, $this.table)
     }
 
 

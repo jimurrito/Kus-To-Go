@@ -35,7 +35,7 @@ class Logger {
     [void] WriteLog([LogLevel]$Level, [string]$Text) {
         # If input log level is less then env, print
         if ($level -le $this.LogLevel) {
-            Add-Content -Path $this.LogFile -Value "$(Get-Date -Format "yyyy-MM-ddThh:mm:ss") $Level $Text"
+            Add-Content -Path $this.LogFile -Value "$(Get-Date -Format "yyyy-MM-ddTHH:mm:ss") $Level $Text"
         }
     }
 
