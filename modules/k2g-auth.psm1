@@ -10,76 +10,163 @@
 
 #
 #
-# Class to ensure token map is not anon
+#
+<#
+.SYNOPSIS
+    Represents an authentication token and its expiration timestamp.
+
+.DESCRIPTION
+    AccessToken stores a token string, the tenant ID it was issued for, and
+    an expiry timestamp. The constructor automatically retrieves a fresh token
+    using Get-AccessToken and computes the expiry time based on the provided
+    number of minutes.
+
+    The class also provides IsExpired() and Refresh() methods for token
+    lifecycle management.
+
+.NOTES
+    Author: James
+    Purpose: Strongly typed token container for authentication workflows.
+#>
 class AccessToken {
+
+    [string]$TenantId
     [string]$Token
     [datetime]$Expiry
-    # ::new bindings
-    AccessToken([string]$token, [datetime]$expiry) {
-        $this.Token = $token
-        $this.Expiry = $expiry
+
+    <#
+    .SYNOPSIS
+        Creates a new AccessToken instance.
+
+    .DESCRIPTION
+        Retrieves a fresh access token for the specified tenant and computes
+        an expiry timestamp based on the provided number of minutes.
+
+    .PARAMETER TenantId
+        The Azure AD tenant ID used to request the token.
+
+    .PARAMETER expiry_mins
+        Number of minutes the token should be considered valid.
+
+    .EXAMPLE
+        $t = [AccessToken]::new("00000000-0000-0000-0000-000000000000", 30)
+    #>
+    AccessToken([string]$TenantId, [int]$expiry_mins) {
+        $this.TenantId = $TenantId
+        $this.Token = Get-AADKustoAccessToken -TenantId $TenantId
+        $this.Expiry = (Get-Date).AddMinutes($expiry_mins)
     }
-    # Method to check if token is valid
-    [bool] IsExpired() { return (Get-Date) -gt $this.Expiry }
+
+    <#
+    .SYNOPSIS
+        Determines whether the token has expired.
+
+    .DESCRIPTION
+        Returns $true if the current system time is later than the token's
+        expiry timestamp.
+
+    .OUTPUTS
+        [bool]
+    #>
+    [bool] IsExpired() {
+        return (Get-Date) -gt $this.Expiry
+    }
+
+    <#
+    .SYNOPSIS
+        Refreshes the token and updates the expiry timestamp.
+
+    .DESCRIPTION
+        Retrieves a new token using the stored TenantId and recomputes the
+        expiry timestamp based on the provided number of minutes.
+
+    .PARAMETER expiry_mins
+        Number of minutes the refreshed token should be valid for.
+    #>
+    [void] Refresh([int]$expiry_mins) {
+        $this.Token = Get-AADKustoAccessToken -TenantId $this.TenantId
+        $this.Expiry = (Get-Date).AddMinutes($expiry_mins)
+    }
+}
+
+#
+#
+#
+<#
+.SYNOPSIS
+    Creates a new AccessToken instance for the specified tenant.
+
+.DESCRIPTION
+    New-AccessToken is a convenience wrapper around the AccessToken class
+    constructor. It retrieves a fresh access token for the provided TenantId
+    and returns a strongly typed AccessToken object containing the token
+    string and its computed expiry timestamp.
+
+.PARAMETER TenantId
+    The Azure Active Directory tenant ID used to request the token.
+
+.OUTPUTS
+    [AccessToken]
+
+.EXAMPLE
+    $token = New-AccessToken -TenantId "00000000-0000-0000-0000-000000000000"
+
+.EXAMPLE
+    if ((New-AccessToken -TenantId $tid).IsExpired()) {
+        Write-Host "Token expired"
+    }
+#>
+function New-AccessToken {
+    param(
+        [Parameter(Mandatory)]
+        [string]$TenantId
+    )
+
+    [AccessToken]::new($TenantId, 60)
 }
 
 
+
 #
 #
 #
-function Get-AccessToken {
+function Get-AADKustoAccessToken {
     <#
     .SYNOPSIS
-    Retrieves an Azure access token for the Kusto (Azure Data Explorer) resource and returns it with an expiry timestamp.
+        Retrieves an Azure access token for the Kusto (Azure Data Explorer) resource.
+        DO NOT USE. Use 'New-AccessToken' instead.
 
     .DESCRIPTION
-    Get-AccessToken authenticates to Azure using the provided tenant ID and retrieves an access token scoped to the
-    Kusto resource endpoint (https://api.kusto.windows.net). Instead of returning only the raw token string, the
-    function now returns a hashtable containing both the token and a calculated expiry time based on the
-    -expiry_mins parameter.
+        Authenticates to Azure using the provided tenant ID and retrieves an
+        access token scoped to the Kusto resource endpoint
+        (https://api.kusto.windows.net). The function returns only the raw
+        token string.
 
     .PARAMETER TenantId
-    The Azure Active Directory tenant ID used when authenticating with Azure CLI.
-
-    .PARAMETER expiry_mins
-    The number of minutes the returned token should be considered valid. Defaults to 60 minutes.
-    This value is used to compute the expiry timestamp included in the output.
+        The Azure Active Directory tenant ID used when authenticating with Azure CLI.
 
     .EXAMPLE
-    Get-AccessToken -TenantId "00000000-0000-0000-0000-000000000000"
-
-    Authenticates to Azure using the specified tenant and returns a hashtable containing:
-        token  – the raw access token string
-        expiry – a DateTime value representing when the token should be treated as expired
+        $token = Get-AccessToken -TenantId "00000000-0000-0000-0000-000000000000"
 
     .EXAMPLE
-    $auth = Get-AccessToken -TenantId "<tenant-guid>"
-    Invoke-WebRequest -Uri "https://api.kusto.windows.net" -Headers @{ Authorization = "Bearer $($auth.token)" }
-
-    Retrieves a token and uses the token value in an authenticated request. The caller may also inspect
-    $auth.expiry to determine whether the token should be refreshed.
+        Invoke-WebRequest -Uri "https://api.kusto.windows.net" `
+            -Headers @{ Authorization = "Bearer $(Get-AccessToken -TenantId $tid)" }
 
     .NOTES
-    Requires Azure CLI (az) to be installed and authenticated. The function performs an `az login` for the
-    specified tenant before requesting the access token.
+        Requires Azure CLI (az) to be installed and authenticated.
     #>
     param (
         [Parameter(Mandatory)]
-        [string]$TenantId,
-        [int]$expiry_mins = 60
+        [string]$TenantId
     )
 
-    # Authenticate to Azure for the given tenant
     $null = az login --allow-no-subscriptions -t $TenantId
 
-    # Retrieve and clean the access token
-    $token = (az account get-access-token `
-            --resource "https://api.kusto.windows.net" `
-            --query "accessToken") -replace '"'
-
-    # Return map that contains token + expiry
-    [AccessToken]::new($token, (Get-Date).AddMinutes($expiry_mins))
+    (az account get-access-token `
+        --resource "https://api.kusto.windows.net" `
+        --query "accessToken") -replace '"'
 }
+
 
 #
 #

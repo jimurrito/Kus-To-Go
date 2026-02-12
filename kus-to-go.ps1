@@ -50,6 +50,7 @@ import-module $PSScriptRoot/modules/k2g-common.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-auth.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-http.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-excel.psm1 -Force
+import-module $PSScriptRoot/modules/k2g-parse.psm1 -Force
 
 #
 # Create required Dirs. Ignore if dir already exists
@@ -64,10 +65,9 @@ $OUTPUT_LOG = (New-Item -Path "$LogDir" -ItemType File -Name "$(Get-Date -Format
 $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Initializing Script"
 
 #
-# get connections from *.xml data
+# get cluster connections from *.xml data
 $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Importing connections.xml"
-[xml]$connections = Get-Content $ConnectionsXML
-$clusters = $connections.ArrayOfServerDescriptionBase.ServerDescriptionBase | select-object Name, Details
+$clusters = $ConnectionsXML | Initialize-ConnectionsXML | Get-KClusters
 $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "[$($clusters.count)] Clusters found in [$ConnectionsXML]"
 
 #
@@ -78,7 +78,9 @@ $excel = Initialize-Excel
 #
 # Initial login
 $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Acquiring Token"
-$token = Get-AccessToken -tenantId $TenantId # Silly jmurrito forgot to add the variable they created!
+$token = New-AccessToken -TenantId $TenantId # Silly jmurrito forgot to add the variable they created!
+$LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Token valid until [$($token.expiry)]"
+
 
 #
 # Iterates through every Cluster in the connections xml.
@@ -86,8 +88,7 @@ foreach ($cluster in $clusters) {
     #
     # check if cluster already has an excel file in the output dir
     $excel_output = "${output}/$($cluster.Name).xlsx"
-    Test-Path -path $excel_output |
-    if ($_ -and !$force) {
+    if ((Test-Path -path $excel_output) -and !$force) {
         # File already exists, and we are not forcing.
         # Skip this cluster.
         $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Cluster [$($cluster.Name)] has already been scrapped to [$excel_output]. Skipping Cluster"
@@ -96,21 +97,26 @@ foreach ($cluster in $clusters) {
     }
 
     #
-    # If you have made it this far, we will be scrapping the cluster
-
- 
-    $request_acc = 0
-    $backoff_mod = 0
-
-
-
+    # If you have made it this far, we will be scrapping the cluster metadata
+    
+    #
+    # Create workbook + sheet via [ExcelWorkSpace] class
+    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Creating Excel workbook [$excel_output]..."
+    $excel_workspace = $excel | New-ExcelWorkbook
+    # Add header to excel sheet.
+    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Adding headers to Excel Workbook [$excel_output] sheet 1..."
+    $excel_workspace.AddHeader(@("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details"))
 
     #
-    $headers = @{
-        "Authorization" = "Bearer $token"
-        "Content-type"  = "application/json"
-        "User-Agent"    = "Kus-to-go/v0.1.0"
-    }
+    # Create Connection class
+    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Creating Connection class for cluster [$($cluster.name)]..."
+    $conn = New-ClusterConnection -ClusterUrl $cluster.url -Token $token.Token
+
+    $conn
+    
+    exit    
+
+
     #
     #
     $cluster_name = $cluster.Name
