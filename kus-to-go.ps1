@@ -93,7 +93,7 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
 :CLUSTER_FOR foreach ($cluster in $clusters) {
     #
     # check if cluster already has an excel file in the output dir
-    $excel_output = "${output}$($cluster.Name).xlsx"
+    $excel_output = (Join-path "$PWD" "${output}$($cluster.Name).xlsx")
     if ((Test-Path -path $excel_output) -and !$force) {
         # File already exists, and we are not forcing.
         # Skip this cluster.
