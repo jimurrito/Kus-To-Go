@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<ArrayOfServerDescriptionBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <ServerDescriptionBase xsi:type="ServerDescription">
-    <Name>Azureslam</Name>
-    <Details>https://azureslam.kusto.windows.net</Details>
-    <ConnectionString>Data Source=https://azureslam.kusto.windows.net:443;Initial Catalog=NetDefaultDB;AAD Federated Security=True</ConnectionString>
-  </ServerDescriptionBase>
-</ArrayOfServerDescriptionBase>
