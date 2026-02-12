@@ -10,79 +10,26 @@
 
 #
 #
-#
-<#
-.SYNOPSIS
-    Represents an authentication token and its expiration timestamp.
-
-.DESCRIPTION
-    AccessToken stores a token string, the tenant ID it was issued for, and
-    an expiry timestamp. The constructor automatically retrieves a fresh token
-    using Get-AccessToken and computes the expiry time based on the provided
-    number of minutes.
-
-    The class also provides IsExpired() and Refresh() methods for token
-    lifecycle management.
-
-.NOTES
-    Author: James
-    Purpose: Strongly typed token container for authentication workflows.
-#>
+# AAD/Kusto Access token tracking class
 class AccessToken {
 
     [string]$TenantId
     [string]$Token
     [datetime]$Expiry
 
-    <#
-    .SYNOPSIS
-        Creates a new AccessToken instance.
-
-    .DESCRIPTION
-        Retrieves a fresh access token for the specified tenant and computes
-        an expiry timestamp based on the provided number of minutes.
-
-    .PARAMETER TenantId
-        The Azure AD tenant ID used to request the token.
-
-    .PARAMETER expiry_mins
-        Number of minutes the token should be considered valid.
-
-    .EXAMPLE
-        $t = [AccessToken]::new("00000000-0000-0000-0000-000000000000", 30)
-    #>
+    # Bindings for ::new
     AccessToken([string]$TenantId, [int]$expiry_mins) {
         $this.TenantId = $TenantId
         $this.Token = Get-AADKustoAccessToken -TenantId $TenantId
         $this.Expiry = (Get-Date).AddMinutes($expiry_mins)
     }
 
-    <#
-    .SYNOPSIS
-        Determines whether the token has expired.
-
-    .DESCRIPTION
-        Returns $true if the current system time is later than the token's
-        expiry timestamp.
-
-    .OUTPUTS
-        [bool]
-    #>
+    # Should be self-explaintory
     [bool] IsExpired() {
         return (Get-Date) -gt $this.Expiry
     }
 
-    <#
-    .SYNOPSIS
-        Refreshes the token and updates the expiry timestamp.
-
-    .DESCRIPTION
-        Retrieves a new token using the stored TenantId and recomputes the
-        expiry timestamp based on the provided number of minutes.
-
-    .PARAMETER expiry_mins
-        Number of minutes the refreshed token should be valid for.
-    #>
+    # Refreshes the access token by prompting the user again
     [void] Refresh() {
         $this.Token = Get-AADKustoAccessToken -TenantId $this.TenantId
         $this.Expiry = (Get-Date).AddMinutes(60) # hard coded for now. I do not think changing is needed.... for now...

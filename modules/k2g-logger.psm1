@@ -17,8 +17,6 @@ enum LogLevel {
     ERROR = 1
 }
 
-
-
 #
 # Static class for env Log Level
 class Logger {
@@ -33,7 +31,7 @@ class Logger {
     }
 
     #
-    #
+    # generic log writer
     [void] WriteLog([LogLevel]$Level, [string]$Text) {
         # If input log level is less then env, print
         if ($level -le $this.LogLevel) {
@@ -60,9 +58,40 @@ class Logger {
 
 #
 #
-# Powershell wrappers
+#
+<#
+.SYNOPSIS
+    Creates a new Logger instance with the specified log level and output file.
 
-function New-Logger () {
+.DESCRIPTION
+    New-Logger is a convenience wrapper for instantiating the Logger class.
+    It accepts a LogLevel enum value and a file path, then returns a fully
+    initialized Logger object ready for use.
+
+.PARAMETER EnvLogLevel
+    The minimum log level required for messages to be written. Messages with
+    a severity numerically less than or equal to this value will be logged.
+
+.PARAMETER LogFile
+    The path to the file where log entries will be written. The file will be
+    created automatically if it does not already exist.
+
+.OUTPUTS
+    Logger
+        Returns a Logger object configured with the provided log level and file.
+
+.EXAMPLE
+    $log = New-Logger -EnvLogLevel INFO -LogFile "C:\logs\app.log"
+
+    Creates a logger that writes INFO, WARN, and ERROR messages to app.log.
+
+.EXAMPLE
+    $log = New-Logger -EnvLogLevel DEBUG -LogFile "./debug.log"
+    $log.LogDebug("Starting process")
+
+    Creates a verbose logger and writes a DEBUG message.
+#>
+function New-Logger {
     param(
         [Parameter(Mandatory)]
         [LogLevel]$EnvLogLevel,

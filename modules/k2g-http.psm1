@@ -26,8 +26,7 @@ class ClusterConnection {
     # Backoff accumulator
     [int]$backoffCount
 
-    #
-    #
+    # Bindings for ::new()
     ClusterConnection([string]$clusterUrl, [String]$token) {
         $this.clusterUrl = $clusterUrl
         $this.database = $null
@@ -42,13 +41,12 @@ class ClusterConnection {
     }
 
     #
-    # 
+    # Retrieves the Databases for the connected Cluster
     [hashtable] GetDatabases() {
         $resp = Invoke-KustoRestRequest -uri "$($this.clusterUrl)/v1/rest/mgmt?csl=.show%20databases" -headers $this.headers
         if (($resp.code) -eq 200) {
-            # This is messy, but dammit it works!!
             # Parses JSON response and outputs list of databases
-            $resp.data = (((($resp.data) | ConvertFrom-Json).tables[0]).rows  | ForEach-Object { $_[0] })
+            $resp.data = ($resp.data | ConvertFrom-Json).tables[0].rows | ForEach-Object { $_[0] }
             return $resp
         }
         else {

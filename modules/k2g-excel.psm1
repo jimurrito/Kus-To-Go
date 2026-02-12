@@ -10,23 +10,7 @@
 
 #
 # Class to hold the workbook/sheet objects as well as a cell pointer
-<#
-.SYNOPSIS
-    Provides a coordinate‑based writer for Excel COM automation.
-
-.DESCRIPTION
-    ExcelWorkspace wraps an Excel workbook and worksheet COM object and exposes
-    a simple pointer‑driven API for writing values into cells. The class tracks
-    an internal X/Y pointer and provides convenience methods for advancing
-    coordinates, inserting values, writing header rows, and saving the workbook.
-
-    This class is intended for sequential, table‑oriented data output where
-    rows and columns are written in order.
-
-.NOTES
-    Author: James
-    Purpose: Lightweight Excel automation helper for structured data export.
-#>
+# used for easier navigation and sheet/workbook management
 class ExcelWorkspace {
 
     [System.__ComObject]$workbook
@@ -34,24 +18,7 @@ class ExcelWorkspace {
     [int]$pointerX
     [int]$pointerY
 
-    <#
-    .SYNOPSIS
-        Creates a new ExcelWorkspace instance.
-
-    .DESCRIPTION
-        Binds the class to an existing Excel workbook and worksheet COM object.
-        Initializes the internal pointer to (1,1), matching Excel's 1‑based
-        indexing.
-
-    .PARAMETER workbook
-        The Excel workbook COM object.
-
-    .PARAMETER sheet
-        The Excel worksheet COM object.
-
-    .EXAMPLE
-        $ws = [ExcelWorkspace]::new($excel.ActiveWorkbook, $excel.ActiveSheet)
-    #>
+    # Bindings for ::new
     ExcelWorkspace([System.__ComObject]$workbook, [System.__ComObject]$sheet) {
         $this.workbook = $workbook
         $this.sheet = $sheet
@@ -59,99 +26,35 @@ class ExcelWorkspace {
         $this.pointerY = 1
     }
 
-    <#
-    .SYNOPSIS
-        Moves the pointer one column to the right.
-
-    .DESCRIPTION
-        Increments the X coordinate by 1. Used when writing horizontally.
-    #>
+    # Moves the pointer one column to the right.
     [void] AdvanceX() { $this.pointerX += 1 }
 
-    <#
-    .SYNOPSIS
-        Moves the pointer down one row and resets X.
-
-    .DESCRIPTION
-        Increments the Y coordinate and resets X to 0. This behavior allows
-        callers to explicitly set X before writing the next row.
-    #>
+    # Moves the pointer down one row and resets X.
     [void] AdvanceY() { $this.pointerY += 1; $this.pointerX = 0 }
 
-    <#
-    .SYNOPSIS
-        Moves the pointer down one row without resetting X.
-
-    .DESCRIPTION
-        Useful when writing multi‑column blocks or when X should remain fixed.
-    #>
+    # Moves the pointer down one row without resetting X.
     [void] AdvanceYNoResetX() { $this.pointerY += 1 }
 
-    <#
-    .SYNOPSIS
-        Saves the workbook to a file.
-
-    .PARAMETER path
-        The file path to save the workbook to.
-
-    .EXAMPLE
-        $ws.SaveAs("C:\temp\report.xlsx")
-    #>
+    # Saves the excel workbook to the provided path
     [void] SaveAs([string]$path) { $this.workbook.SaveAs($path) }
 
-    <#
-    .SYNOPSIS
-        Writes a value to the current pointer location without advancing X.
-
-    .DESCRIPTION
-        Writes the provided value to the cell at (X,Y) but does not modify
-        the pointer position.
-
-    .PARAMETER value
-        The string value to write into the cell.
-
-    .EXAMPLE
-        $ws.InsertCellNoAdvanceX("Hello")
-    #>
+    # same as InsertCell() but does not advance X
+    # unsure the use-case, maybe helpful
     [void] InsertCellNoAdvanceX([string]$value) {
         $x = $this.pointerX
         $y = $this.pointerY
         $this.sheet.Cells.Item($x, $y).Value = $value
     }
 
-    <#
-    .SYNOPSIS
-        Writes a value to the current pointer location and advances X.
-
-    .DESCRIPTION
-        Convenience wrapper around InsertCellNoAdvanceX that automatically
-        increments the X coordinate after writing.
-
-    .PARAMETER value
-        The string value to write.
-
-    .EXAMPLE
-        $ws.InsertCell("Name")
-    #>
+    #
+    # Inserts data into a single cell and advances the X coord
     [void] InsertCell([string]$value) {
         $this.InsertCellNoAdvanceX($value)
         $this.AdvanceX()
     }
 
-    <#
-    .SYNOPSIS
-        Writes an excel row from a list of column names.
-
-    .DESCRIPTION
-        Writes each value into the current row, advancing X after each one.
-        After writing all values, advances Y to begin writing data rows.
-
-    .PARAMETER headers
-        An array of column data to write.
-
-    .EXAMPLE
-        $ws.AddRow(@("Name","Age","City"))
-    #>
+    # Adds an entire row to the sheet
+    # advances Y and resets X
     [void] AddRow([string[]]$headers) {
         $headers | ForEach-Object {
             $this.InsertCell($_)
