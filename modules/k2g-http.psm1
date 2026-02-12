@@ -48,7 +48,7 @@ class ClusterConnection {
         if (($resp.code) -eq 200) {
             # This is messy, but dammit it works!!
             # Parses JSON response and outputs list of databases
-            $resp.resp = (((($resp.resp).content | ConvertFrom-Json).tables[0]).rows | ForEach-Object { $_[0] })
+            $resp.data = (((($resp.data) | ConvertFrom-Json).tables[0]).rows  | ForEach-Object { $_[0] })
             return $resp
         }
         else {
@@ -122,15 +122,10 @@ function Invoke-KustoRestRequest {
         }
     }
     catch {
-        $code = $_.Exception.Response
-        if ($code -notin @(401, 429)) {
-            throw "Unexpected Error from Kusto Rest API call [$code]"
-        }
-        else {
-            @{
-                code = $code 
-                data = $resp
-            }
+        # Return http failure code + content
+        @{
+            code = $_.Exception.Response
+            data = $resp
         }
     }
     #

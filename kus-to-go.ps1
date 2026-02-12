@@ -120,7 +120,7 @@ $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Token valid until [
     $conn = New-ClusterConnection -ClusterUrl $cluster.url -Token $token.Token
 
     #
-    # Stuck in loop until we hit a failure threshold, or succeed
+    # Stuck in loop until we hit a failure threshold, or succeed with databases
     :DBWhile while ($true) {
         $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Attempting to scrape Database(s) from [$($cluster.Name)]."
         # 
@@ -129,9 +129,19 @@ $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Token valid until [
         switch ($resp.code) {
             # Success
             200 {
-                #
-                # BREAK LOOP AND RETURN LIST TO CONTINUE
-                #
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Returned [$($resp.data.Count)] Databases from Cluster [$($cluster.Name)]."
+                # If we found no DBs, move to next cluster
+                if (!($resp.data.Count)) {
+                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "No Databases found in Cluster [$($cluster.Name)]. Moving to next cluster."
+                    # Advance cluster for loop
+                    continue CLUSTER_FOR
+                }
+
+                # Store response data in a new var
+                $databases = $resp.data
+                # break while and continue
+                break DBWhile
+
             }
             # 401 un-authorized. Token expired or no VPN
             401 {
@@ -165,15 +175,19 @@ $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Token valid until [
                 $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Starting backoff #[$($conn.backoffCount)] for [$(60 * [math]::Pow(2, $conn.backoffCount))] seconds"
                 Start-Backoff $conn.backoffCount
             }
-
+            # Unknown/Unmapped error
+            default {
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text "Unexpected error occurred while scrapping [$($cluster.Name)] for databases. Skipping Cluster."
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Unexpected error [ code: $($resp.data) data: $($resp.data)]"
+                continue CLUSTER_FOR
+            }
         }
-
-
-
     }
 
+    #
+    # At this point, we have some databases from the cluster
 
-    
+    $databases
 
 
 
