@@ -13,6 +13,8 @@
 class ClusterMeta {
     [string]$name
     [string]$url
+    #
+    #
     ClusterMeta([string]$name, [string]$url) {
         # Cluster friendly name
         $this.name = $name

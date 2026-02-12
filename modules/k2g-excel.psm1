@@ -140,19 +140,19 @@ class ExcelWorkspace {
 
     <#
     .SYNOPSIS
-        Writes a header row from a list of column names.
+        Writes an excel row from a list of column names.
 
     .DESCRIPTION
-        Writes each header into the current row, advancing X after each one.
-        After writing all headers, advances Y to begin writing data rows.
+        Writes each value into the current row, advancing X after each one.
+        After writing all values, advances Y to begin writing data rows.
 
     .PARAMETER headers
-        An array of header names to write.
+        An array of column data to write.
 
     .EXAMPLE
-        $ws.AddHeader(@("Name","Age","City"))
+        $ws.AddRow(@("Name","Age","City"))
     #>
-    [void] AddHeader([string[]]$headers) {
+    [void] AddRow([string[]]$headers) {
         $headers | ForEach-Object {
             $this.InsertCell($_)
         }

@@ -84,7 +84,7 @@ $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Token valid until [
 
 #
 # Iterates through every Cluster in the connections xml.
-foreach ($cluster in $clusters) {
+:CLUSTER_FOR foreach ($cluster in $clusters) {
     #
     # check if cluster already has an excel file in the output dir
     $excel_output = "${output}/$($cluster.Name).xlsx"
@@ -93,7 +93,7 @@ foreach ($cluster in $clusters) {
         # Skip this cluster.
         $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Cluster [$($cluster.Name)] has already been scrapped to [$excel_output]. Skipping Cluster"
         # Advances the for-loop to the next instance
-        continue
+        continue CLUSTER_FOR
     }
 
     #
@@ -105,31 +105,80 @@ foreach ($cluster in $clusters) {
     $excel_workspace = $excel | New-ExcelWorkbook
     # Add header to excel sheet.
     $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Adding headers to Excel Workbook [$excel_output] sheet 1..."
-    $excel_workspace.AddHeader(@("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details"))
+    $excel_workspace.AddRow(@("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details"))
+
+    #
+    # Validate token validity -> refresh if invalid due to time
+    if ($token.IsExpired()) {
+        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Kusto Token has expired. Re-auth pop-up sent to user."
+        $token.Refresh()
+    }
 
     #
     # Create Connection class
     $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Creating Connection class for cluster [$($cluster.name)]..."
     $conn = New-ClusterConnection -ClusterUrl $cluster.url -Token $token.Token
 
-    $conn
+    #
+    # Stuck in loop until we hit a failure threshold, or succeed
+    :DBWhile while ($true) {
+        $LogLevel | Write-Log -file "$OUTPUT_LOG" -level INFO -text "Attempting to scrape Database(s) from [$($cluster.Name)]."
+        # 
+        # Check database query return
+        $resp = $conn.GetDatabases()
+        switch ($resp.code) {
+            # Success
+            200 {
+                #
+                # BREAK LOOP AND RETURN LIST TO CONTINUE
+                #
+            }
+            # 401 un-authorized. Token expired or no VPN
+            401 {
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "401 returned while scrapping [$($cluster.Name)] for databases."
+                $conn.failCount += 1
+                # hard coded failure limit of 3
+                # After 3 401(s) we should probably take the hint. No means no.
+                if ($conn.failCount -ge 3) {
+                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text "Failure limit for cluster has been reached [3]. Skipping Cluster."
+                    # Advance cluster loop
+                    continue CLUSTER_FOR
+                }
+                #
+                # verbose log and refresh token
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level DEBUG -text "Fail counter for cluster [$($cluster.Name)] is now at [$($conn.failCount)]"
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Attempting reauthentication. Prompt sent to user..."
+                $token.Refresh()
+            }
+            # 429 Too Many Requests
+            429 {
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text "429 returned while scrapping [$($cluster.Name)] for databases."
+                $conn.backoffCount += 1
+                # Hard coded backoff limit is 6
+                # 5th backoff would be 32 minutes log
+                # 6th backoff would be 64 minutes log, and this will cause the next request to reauth. Skips cluster to void prolonged waiting.
+                if ($conn.backoffCount -ge 6) {
+                    $LogLevel | Write-Log -file "$OUTPUT_LOG" -level ERROR -text "Backoff limit for cluster has been reached [6]. Skipping Cluster."
+                    # Advance cluster loop
+                    continue CLUSTER_FOR
+                }
+                $LogLevel | Write-Log -file "$OUTPUT_LOG" -level WARN -text "Starting backoff #[$($conn.backoffCount)] for [$(60 * [math]::Pow(2, $conn.backoffCount))] seconds"
+                Start-Backoff $conn.backoffCount
+            }
+
+        }
+
+
+
+    }
+
+
     
-    exit    
 
 
-    #
-    #
-    $cluster_name = $cluster.Name
-    $cluster_url = $cluster.Details
-    #
-    # clean url
-    $cluster_url = if ($cluster_url -match "Data Source=") {
-        # removes data source tag
-        ($cluster_url.Replace("Data Source=", "") -split ":443" -split ";")[0]
-    }
-    else {
-        $cluster_url
-    }
+
+    exit
+    
     #
     #
     # blank cluster output

@@ -75,7 +75,7 @@ function Write-Log {
 #
 #
 #
-function Set-Backoff {
+function Start-Backoff {
     <#
     .SYNOPSIS
     Implements exponential backoff after receiving a throttling response.
@@ -118,9 +118,7 @@ function Set-Backoff {
     )
     $backoff_time = 60 * [math]::Pow(2, $backoff_mod)
     Add-LogData -file $error_log `
-        -level WARN `
+        -level DEBUG `
         -text "Backing off for $backoff_time seconds..."
-    Write-Host "Received 429 response. Backing off for $backoff_time seconds..."
     Start-Sleep -Seconds $backoff_time
-    return ($backoff_mod + 1)
 }

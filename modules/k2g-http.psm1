@@ -9,6 +9,8 @@
 #
 #
 
+
+
 #
 #
 class ClusterConnection {
@@ -38,8 +40,30 @@ class ClusterConnection {
             "User-Agent"    = "Kus-to-go/v0.1.0"
         }
     }
+
+    #
+    # 
+    [hashtable] GetDatabases() {
+        $resp = Invoke-KustoRestRequest -uri "$($this.clusterUrl)/v1/rest/mgmt?csl=.show%20databases" -headers $this.headers
+        if (($resp.code) -eq 200) {
+            # This is messy, but dammit it works!!
+            # Parses JSON response and outputs list of databases
+            $resp.resp = (((($resp.resp).content | ConvertFrom-Json).tables[0]).rows | ForEach-Object { $_[0] })
+            return $resp
+        }
+        else {
+            return $resp
+        }
+    }
+
+
+    #
+    #
 }
 
+#
+#
+#
 <#
 .SYNOPSIS
     Creates a new ClusterConnection instance.
@@ -75,8 +99,42 @@ function New-ClusterConnection {
         [Parameter(Mandatory)]
         [string]$Token
     )
-
     [ClusterConnection]::new($ClusterUrl, $Token)
 }
+
+#
+#
+# Wrapper to handle catching HTTP errors
+function Invoke-KustoRestRequest {
+    param (
+        [parameter(Mandatory)]
+        [string]$uri,
+
+        [parameter(Mandatory)]
+        [hashtable]$headers
+    )
+    #
+    try {
+        $resp = Invoke-WebRequest -Method GET -Headers $headers -Uri $uri
+        @{
+            code = 200 
+            data = $resp
+        }
+    }
+    catch {
+        $code = $_.Exception.Response
+        if ($code -notin @(401, 429)) {
+            throw "Unexpected Error from Kusto Rest API call [$code]"
+        }
+        else {
+            @{
+                code = $code 
+                data = $resp
+            }
+        }
+    }
+    #
+}
+
 
 

@@ -83,9 +83,9 @@ class AccessToken {
     .PARAMETER expiry_mins
         Number of minutes the refreshed token should be valid for.
     #>
-    [void] Refresh([int]$expiry_mins) {
+    [void] Refresh() {
         $this.Token = Get-AADKustoAccessToken -TenantId $this.TenantId
-        $this.Expiry = (Get-Date).AddMinutes($expiry_mins)
+        $this.Expiry = (Get-Date).AddMinutes(60) # hard coded for now. I do not think changing is needed.... for now...
     }
 }
 
