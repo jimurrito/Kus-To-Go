@@ -22,6 +22,11 @@ function Get-BlackList() {
         "fed"
         "sample"
         "kusto"
+        "test"
+        "V[0-9]"
+        "V[0-9][0-9]"
+        "."
+        "RDFE"
     )
 }
 
