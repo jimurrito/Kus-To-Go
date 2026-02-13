@@ -52,6 +52,7 @@ import-module $PSScriptRoot/modules/k2g-http.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-excel.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-parse.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-logger.psm1 -Force
+import-module $PSScriptRoot/modules/k2g-filter.psm1 -Force
 
 #
 # Create required Dirs. Ignore if dir already exists
@@ -219,7 +220,21 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
             switch ($resp.code) {
                 # Success
                 200 {
-                    $LOGGER.LogInfo("Returned [$($resp.data.Count)] Tables from Database [$database].")
+                    #
+                    # We have to filter out junk tables and tables which are related to sovreign clouds. 
+                    #
+                    # pre-filter debug output
+                    $preFilterCount = $resp.data.Count
+                    $LOGGER.LogDebug("[Pre-filter!] Returned [$preFilterCount] Tables from Database [$database].")
+                    # run blacklist filter
+                    # Must be a param as piped input works off each item individually
+                    $resp.data = Remove-BlackListed -InputList $resp.data
+                    $postFilterCount = $resp.data.Count
+                    $LOGGER.LogDebug("Removed [$($preFilterCount - $postFilterCount)] Tables from the list due to blacklisting.")
+                    $LOGGER.LogInfo("Returned [$postFilterCount] Table(s) from Database [$database].")
+                    #
+                    #
+
                     # If we found no TBLs, move to next DB
                     if (!($resp.data.Count)) {
                         $LOGGER.LogWarn("No Tables found in Database [$database]. Moving to next Database.")
@@ -350,16 +365,20 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
                     }
                 }
             }
-        }
 
-        #
-        # $columns contains the list of columns for this table
+            #
+            # $columns contains the list of columns for this table
         
-        #
-        # Write data to row in excel
-        # One row per table
-        # schema: @("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details")
-        $excel_workspace.AddRow(@($cluster.name, $cluster.url, $database, $table, ($columns -join ", "), ""))
+            #
+            # Write data to row in excel
+            # One row per table
+            $LOGGER.LogInfo("Saving data for Table [$table] to Excel sheet")
+            # schema: @("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details")
+            $excel_workspace.AddRow(@($cluster.name, $cluster.url, $database, $table, ($columns -join ", "), ""))
+            $LOGGER.LogDebug("Excel pointer now at [$($excel_workspace.pointerX),$($excel_workspace.pointerY)]")
+            #
+            # End of Table iteration
+        }
 
         #
         # End of DB iteration

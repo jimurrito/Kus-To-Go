@@ -105,7 +105,7 @@ function Initialize-Excel {
     # Create COM automation object
     $excel = New-Object -ComObject Excel.Application
     # Prevent Excel from opening a visible window
-    $excel.Visible = $false
+    $excel.Visible = $true
     # Return the Excel application object
     $excel
 }
