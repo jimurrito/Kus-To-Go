@@ -288,7 +288,7 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
             #
             # Holds loop until we failout or succeed.
             :ColumnWhile while ($true) {
-                $LOGGER.LogInfo("Attempting to scrape Table(s) from Database [$database].")
+                $LOGGER.LogInfo("Attempting to scrape Column(s) from Table [$table].")
                 # 
                 # Check database query return
                 $resp = $conn.GetColumns()
