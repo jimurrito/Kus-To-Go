@@ -280,7 +280,7 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
 
         #
         # Enumerate Tables
-        :TBL_FOR foreach ($table in $tables[0]) {
+        :TBL_FOR foreach ($table in $tables) {
             #
             # Set table name in connection obj
             $conn.table = $table
@@ -373,9 +373,12 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
     $LOGGER.LogInfo("Saving Excel Workbook [$($excel_output)].")
     $excel_workspace.SaveAs()
 
-    # REMOVE
-    $excel.Quit()
+    #
+    # End of cluster iteration
 }
+
+# Kill excel once we are done
+$excel.Quit()
 
 exit
 

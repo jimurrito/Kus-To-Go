@@ -32,7 +32,7 @@ class ExcelWorkspace {
     [void] AdvanceX() { $this.pointerX += 1 }
 
     # Moves the pointer down one row and resets X.
-    [void] AdvanceY() { $this.pointerY += 1; $this.pointerX = 0 }
+    [void] AdvanceY() { $this.pointerY += 1; $this.pointerX = 1 }
 
     # Moves the pointer down one row without resetting X.
     [void] AdvanceYNoResetX() { $this.pointerY += 1 }
@@ -47,7 +47,8 @@ class ExcelWorkspace {
     [void] InsertCellNoAdvanceX([string]$value) {
         $x = $this.pointerX
         $y = $this.pointerY
-        $this.sheet.Cells.Item($x, $y).Value = $value
+        # these crazy MF swapped x and y around :(
+        $this.sheet.Cells.Item($y, $x).Value = $value
     }
 
     #
@@ -169,6 +170,7 @@ function New-ExcelWorkbook {
         [Parameter(ValueFromPipeline, Mandatory)]
         [System.__ComObject]$Excel,
 
+        [Parameter(Mandatory)]
         [string]$FilePath
     )
 
