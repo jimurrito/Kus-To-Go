@@ -20,6 +20,8 @@ function Get-BlackList() {
         "blackforest"
         "mooncake"
         "fed"
+        "sample"
+        "kusto"
     )
 }
 

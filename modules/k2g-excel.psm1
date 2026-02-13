@@ -107,7 +107,7 @@ function Initialize-Excel {
     #>
 
     param(
-        [switch]$Visualize
+        [bool]$Visualize = $false
     )
     
     # Create COM automation object

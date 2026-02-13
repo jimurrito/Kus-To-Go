@@ -43,7 +43,7 @@ param(
     [switch]$Force,
 
     # Renders the excel windows instead of hiding them
-    [swithc]$Visualize
+    [switch]$Visualize
 )
 
 #
@@ -87,7 +87,7 @@ $LOGGER.LogDebug("[$($clusters.count)] Clusters found in [$ConnectionsXML]")
 #
 # Create excel handler
 $LOGGER.LogDebug("Opening an Excel handler...")
-$excel = Initialize-Excel -Visualize
+$excel = Initialize-Excel -Visualize $Visualize
 
 #
 # Initial login
@@ -105,7 +105,7 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
     if ((Test-Path -path $excel_output) -and !$force) {
         # File already exists, and we are not forcing.
         # Skip this cluster.
-        $LOGGER.LogDebug("Cluster [$($cluster.Name)] has already been scrapped to [$excel_output]. Skipping Cluster")
+        $LOGGER.LogInfo("Cluster [$($cluster.Name)] has already been scrapped to [$excel_output]. Skipping Cluster")
         # Advances the for-loop to the next instance
         continue CLUSTER_FOR
     }
@@ -385,10 +385,9 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
             #
             # Write data to row in excel
             # One row per table
-            $LOGGER.LogInfo("Saving data for Table [$table] to Excel sheet")
+            $LOGGER.LogDebug("Saving data for Table [$table] to Excel sheet")
             # schema: @("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details")
             $excel_workspace.AddRow(@($cluster.name, $cluster.url, $database, $table, ($columns -join ", "), ""))
-            $LOGGER.LogDebug("Excel pointer now at [$($excel_workspace.pointerX),$($excel_workspace.pointerY)]")
             #
             # End of Table iteration
         }
@@ -403,7 +402,8 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
 
     # Write excel sheet to the output file
     $LOGGER.LogInfo("Saving Excel Workbook [$($excel_output)].")
-    $excel_workspace.CloseAndSave()
+    $excel_workspace.SaveAs()
+    $excel_workspace.Close()
 
     #
     # End of cluster iteration
