@@ -415,7 +415,7 @@ $excel.Quit()
 
 #
 # Stop timer
-$elapsed = (Get-Date) - $start
+$elapsed = (Get-Date) - $TIMER_START
 
 #
 $LOGGER.LogInfo("Done. Completed run in ($($elapsed.TotalSeconds))s")
