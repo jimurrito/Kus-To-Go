@@ -42,6 +42,10 @@ class ExcelWorkspace {
     # same as SaveAs/1 but pulls from the class
     [void] SaveAs() { $this.SaveAs($this.filepath) }
 
+    # Closes, but does not save, the Workbook
+    [void] Close() { $this.workbook.Close($false) }
+    [void] CloseAndSave() { $this.workbook.Close($true) }
+
     # same as InsertCell() but does not advance X
     # unsure the use-case, maybe helpful
     [void] InsertCellNoAdvanceX([string]$value) {
@@ -101,11 +105,15 @@ function Initialize-Excel {
     - Requires Microsoft Excel to be installed on the system.
     - Call `$excel.Quit()` when finished to avoid leaving Excel.exe running.
     #>
+
+    param(
+        [switch]$Visualize
+    )
     
     # Create COM automation object
     $excel = New-Object -ComObject Excel.Application
     # Prevent Excel from opening a visible window
-    $excel.Visible = $true
+    $excel.Visible = $Visualize
     # Return the Excel application object
     $excel
 }

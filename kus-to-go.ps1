@@ -40,7 +40,10 @@ param(
     [string]$ConnectionsXML = "./kusto_connections.xml",
 
     # Force will ignore if a file already exists, and rescan the cluster anyways.
-    [switch]$Force
+    [switch]$Force,
+
+    # Renders the excel windows instead of hiding them
+    [swithc]$Visualize
 )
 
 #
@@ -53,6 +56,10 @@ import-module $PSScriptRoot/modules/k2g-excel.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-parse.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-logger.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-filter.psm1 -Force
+
+#
+# Start timer
+$TIMER_START = Get-Date
 
 #
 # Create required Dirs. Ignore if dir already exists
@@ -80,7 +87,7 @@ $LOGGER.LogDebug("[$($clusters.count)] Clusters found in [$ConnectionsXML]")
 #
 # Create excel handler
 $LOGGER.LogDebug("Opening an Excel handler...")
-$excel = Initialize-Excel
+$excel = Initialize-Excel -Visualize
 
 #
 # Initial login
@@ -108,14 +115,6 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
     # If you have made it this far, we will be scrapping the cluster metadata
     #
     #
-    
-    #
-    # Create workbook + sheet via [ExcelWorkSpace] class
-    $LOGGER.LogDebug("Creating Excel workbook [$excel_output]...")
-    $excel_workspace = $excel | New-ExcelWorkbook -FilePath $excel_output
-    # Add header to excel sheet.
-    $LOGGER.LogDebug("Adding headers to Excel Workbook [$excel_output] sheet (1) ...")
-    $excel_workspace.AddRow(@("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details"))
 
     #
     # Validate token validity -> refresh if invalid due to time
@@ -170,6 +169,7 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
                 $LOGGER.LogDebug("Fail counter for cluster [$($cluster.Name)] is now at [$($conn.failCount)]")
                 $LOGGER.LogWarn("Attempting reauthentication. Prompt sent to user...")
                 $token.Refresh()
+                $conn.RefreshToken($token.Token)
             }
             # 429 Too Many Requests
             429 {
@@ -197,10 +197,19 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
     }
 
     #
+    # Excel workbook is only opened if we have any databases in the Cluster
+
+    #
+    # Create workbook + sheet via [ExcelWorkSpace] class
+    $LOGGER.LogDebug("Creating Excel workbook [$excel_output]...")
+    $excel_workspace = $excel | New-ExcelWorkbook -FilePath $excel_output
+    # Add header to excel sheet.
+    $LOGGER.LogDebug("Adding headers to Excel Workbook [$excel_output] sheet (1) ...")
+    $excel_workspace.AddRow(@("Cluster", "Cluster-URI", "Database", "Table", "Columns", "Details"))
+
+    #
     # At this point, we have some databases from the cluster
-
     # $databases contains the list of names
-
 
     #
     # Enumerate the databases to get tables
@@ -264,6 +273,8 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
                     $LOGGER.LogDebug("Fail counter for cluster [$($cluster.Name)] is now at [$($conn.failCount)]")
                     $LOGGER.LogWarn("Attempting reauthentication. Prompt sent to user...")
                     $token.Refresh()
+                    $conn.RefreshToken($token.Token)
+
                 }
                 # 429 Too Many Requests
                 429 {
@@ -340,6 +351,8 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
                         $LOGGER.LogDebug("Fail counter for cluster [$($cluster.Name)] is now at [$($conn.failCount)]")
                         $LOGGER.LogWarn("Attempting reauthentication. Prompt sent to user...")
                         $token.Refresh()
+                        $conn.RefreshToken($token.Token)
+
                     }
                     # 429 Too Many Requests
                     429 {
@@ -390,11 +403,19 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
 
     # Write excel sheet to the output file
     $LOGGER.LogInfo("Saving Excel Workbook [$($excel_output)].")
-    $excel_workspace.SaveAs()
+    $excel_workspace.CloseAndSave()
 
     #
     # End of cluster iteration
 }
 
 # Kill excel once we are done
+$LOGGER.LogDebug("Closing Excel")
 $excel.Quit()
+
+#
+# Stop timer
+$elapsed = (Get-Date) - $start
+
+#
+$LOGGER.LogInfo("Done. Completed run in ($($elapsed.TotalSeconds))s")

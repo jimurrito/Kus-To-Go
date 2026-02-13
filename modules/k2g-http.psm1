@@ -41,6 +41,16 @@ class ClusterConnection {
     }
 
     #
+    # Refreshes the cached token
+    [void] RefreshToken([string]$Token) {
+        $this.headers = @{
+            "Authorization" = "Bearer $token"
+            "Content-type"  = "application/json"
+            "User-Agent"    = "Kus-to-go/v0.1.0"
+        }
+    }
+
+    #
     # Generic Rest call + parse core data
     [hashtable] MakeRestRequest([string]$URI) {
         $resp = Invoke-KustoRestRequest -uri "$URI" -headers $this.headers
