@@ -49,7 +49,6 @@ param(
 #
 # Imports
 # Uses "$PSScriptRoot" so the path is relative to the script and now the user working dir
-import-module $PSScriptRoot/modules/k2g-common.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-auth.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-http.psm1 -Force
 import-module $PSScriptRoot/modules/k2g-excel.psm1 -Force

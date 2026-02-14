@@ -80,16 +80,20 @@ class ExcelWorkspace {
 function Initialize-Excel {
     <#
     .SYNOPSIS
-    Creates and initializes a hidden Excel COM automation instance.
+    Creates and initializes an Excel COM automation instance.
 
     .DESCRIPTION
     Initialize-Excel starts a new instance of Microsoft Excel using COM automation
-    and returns the Excel.Application object. The Excel window is created in a
-    non‑visible state, allowing scripts to generate or manipulate workbooks
-    programmatically without displaying the Excel UI.
+    and returns the Excel.Application object. By default, the Excel window is
+    created in a non‑visible state, allowing scripts to generate or manipulate
+    workbooks programmatically without displaying the Excel UI.
 
-    This function is typically used as the first step in Excel automation workflows
-    where workbooks, worksheets, or cell data will be created or modified.
+    The optional Visualize parameter allows callers to explicitly control whether
+    the Excel window should be shown.
+
+    .PARAMETER Visualize
+    When set to $true, Excel will be launched with its window visible. The default
+    value is $false, which keeps the Excel UI hidden.
 
     .OUTPUTS
     Microsoft.Office.Interop.Excel.Application
@@ -101,22 +105,28 @@ function Initialize-Excel {
 
     Creates a hidden Excel instance and adds a new workbook.
 
+    .EXAMPLE
+    Initialize-Excel -Visualize $true
+
+    Launches Excel with the UI visible.
+
     .NOTES
     - Requires Microsoft Excel to be installed on the system.
     - Call `$excel.Quit()` when finished to avoid leaving Excel.exe running.
     #>
-
+    
     param(
         [bool]$Visualize = $false
     )
-    
+
     # Create COM automation object
     $excel = New-Object -ComObject Excel.Application
-    # Prevent Excel from opening a visible window
+    # Control Excel window visibility
     $excel.Visible = $Visualize
     # Return the Excel application object
     $excel
 }
+
 
 #
 #
@@ -133,6 +143,12 @@ function New-ExcelWorkbook {
         and internal cursor pointers used for structured cell navigation
         and writing.
 
+        The FilePath parameter is required and must be an absolute path.
+        This requirement comes from Excel’s COM automation model, which
+        does not reliably accept relative paths for SaveAs operations.
+        Using a fully qualified path ensures consistent behavior when the
+        workbook is later saved.
+
         This function is intended to be used after calling Initialize-Excel,
         which provides the Excel.Application COM object required to create
         the workbook.
@@ -143,9 +159,13 @@ function New-ExcelWorkbook {
         to be passed directly through the pipeline.
 
     .PARAMETER FilePath
-        Optional. A file path associated with the new workbook. This value
-        is passed into the ExcelWorkspace constructor and may be used for
-        default save locations or tracking where the workbook should be
+        A required absolute file path associated with the new workbook.
+        Relative paths are not permitted. This restriction is imposed by
+        Excel’s COM SaveAs API, which requires fully qualified paths to
+        avoid application-defined or object-defined errors (e.g., 0x800A03EC).
+
+        The value is passed into the ExcelWorkspace constructor and is used
+        for default save locations or tracking where the workbook should be
         written.
 
     .OUTPUTS
@@ -154,22 +174,24 @@ function New-ExcelWorkbook {
             - The workbook COM object
             - The first worksheet COM object
             - Internal X/Y pointers for cell navigation
-            - The optional file path provided at creation time
+            - The absolute file path provided at creation time
 
     .EXAMPLE
         $excel = Initialize-Excel
-        $workspace = New-ExcelWorkbook -Excel $excel -FilePath "C:\temp\report.xlsx"
+        $workspace = New-ExcelWorkbook -Excel $excel -FilePath "C:\Reports\January.xlsx"
 
-        Creates a new workbook and associates it with a file path.
+        Creates a new workbook and associates it with an absolute file path.
 
     .EXAMPLE
-        Initialize-Excel | New-ExcelWorkbook
+        Initialize-Excel | New-ExcelWorkbook -FilePath "D:\Output\Report.xlsx"
 
         Demonstrates pipeline support. The Excel COM object produced by
         Initialize-Excel is piped directly into New-ExcelWorkbook.
 
     .NOTES
         - Requires Microsoft Excel to be installed.
+        - FilePath must be an absolute path because Excel COM does not
+          support relative paths for SaveAs operations.
         - Remember to call $excel.Quit() when finished to avoid leaving
           Excel.exe running.
     #>
@@ -188,5 +210,6 @@ function New-ExcelWorkbook {
     # Return a new ExcelWorkspace instance
     [ExcelWorkspace]::new($workbook, $workbook.Worksheets.Item(1), $FilePath)
 }
+
 
 

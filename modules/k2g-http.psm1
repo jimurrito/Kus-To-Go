@@ -65,15 +65,11 @@ class ClusterConnection {
     }
 
     #
-    #
-    #
     # Retrieves the Databases for the connected Cluster
     [hashtable] GetDatabases() {
         return $this.MakeRestRequest("$($this.clusterUrl)/v1/rest/mgmt?csl=.show%20databases")
     }
 
-    #
-    #
     #
     # Retrieve Tables for a given database within the connected cluster
     [hashtable] GetTables([string]$DatabaseName) {
@@ -84,9 +80,7 @@ class ClusterConnection {
         return $this.GetTables($this.database)
     }
 
-    #
-    #
-    #
+
     #
     # Retrieve Tables for a given database within the connected cluster
     [hashtable] GetColumns([string]$DatabaseName, [string]$TableName) {
@@ -100,10 +94,6 @@ class ClusterConnection {
     [hashtable] GetColumns() {
         return $this.GetColumns($this.database, $this.table)
     }
-
-
-    #
-    #
 }
 
 #
@@ -151,6 +141,60 @@ function New-ClusterConnection {
 #
 # Wrapper to handle catching HTTP errors
 function Invoke-KustoRestRequest {
+    <#
+    .SYNOPSIS
+        Performs a raw REST GET request against a Kusto endpoint.
+
+    .DESCRIPTION
+        Invoke-KustoRestRequest is a thin wrapper around Invoke-WebRequest that
+        performs a basic GET request using the provided URI and headers. It
+        returns a hashtable containing the HTTP status code and the raw response
+        object.
+
+        This function does not perform any higher-level Kusto logic such as:
+        - Token acquisition or refresh
+        - Retry/backoff handling
+        - Cluster or database context management
+        - Response parsing beyond returning the raw payload
+
+        While this function can be used directly, it is not intended to be the
+        primary interface for interacting with Kusto. Instead, callers should
+        create a ClusterConnection object using New-ClusterConnection and use
+        its methods (GetDatabases, GetTables, GetColumns, etc.), which internally
+        call this function with the correct headers, token, and request structure.
+
+    .PARAMETER Uri
+        The full request URI for the Kusto REST endpoint.
+
+    .PARAMETER Headers
+        A hashtable of HTTP headers to include in the request. Typically this
+        includes an Authorization header containing a bearer token.
+
+    .OUTPUTS
+        hashtable
+            A hashtable with:
+            - code : The HTTP status code (200 on success, or the response
+                     object on failure)
+            - data : The raw Invoke-WebRequest response object
+
+    .EXAMPLE
+        Invoke-KustoRestRequest -Uri $uri -Headers $headers
+
+        Performs a raw GET request. Useful for debugging or low-level testing.
+
+    .EXAMPLE
+        $conn = New-ClusterConnection -ClusterUrl $url -Token $token
+        $conn.GetDatabases()
+
+        Preferred usage. The ClusterConnection object handles headers, tokens,
+        and parsing, and internally calls Invoke-KustoRestRequest.
+
+    .NOTES
+        - This function is intentionally low-level.
+        - Prefer using ClusterConnection methods for real Kusto operations.
+        - Returned data is unparsed unless the caller processes it manually.
+    #>
+
     param (
         [parameter(Mandatory)]
         [string]$uri,
@@ -158,23 +202,22 @@ function Invoke-KustoRestRequest {
         [parameter(Mandatory)]
         [hashtable]$headers
     )
-    #
+
     try {
         $resp = Invoke-WebRequest -Method GET -Headers $headers -Uri $uri
         @{
-            code = 200 
+            code = 200
             data = $resp
         }
     }
     catch {
-        # Return http failure code + content
         @{
             code = $_.Exception.Response
             data = $resp
         }
     }
-    #
 }
+
 
 
 
