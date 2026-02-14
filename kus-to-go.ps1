@@ -213,7 +213,7 @@ $LOGGER.LogInfo("Token valid until [$($token.expiry)]")
 
     #
     # Enumerate the databases to get tables
-    :DB_FOR foreach ($database in $databases[0]) {
+    :DB_FOR foreach ($database in $databases) {
 
         #
         # Set database name into connection obj
