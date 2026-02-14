@@ -1,138 +1,167 @@
-# Kus-to-go
+# Kus‑to‑Go  
+### A Kusto Metadata Scraper for Multi‑Cluster Environments
 
-Kusto metadata scraper.
+![PowerShell](https://img.shields.io/badge/PowerShell-5%2B-blue?logo=powershell)
+![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey?logo=windows)
+![Excel COM](https://img.shields.io/badge/Requires-Microsoft%20Excel-yellow)
+![License](https://img.shields.io/badge/License-GPLv3-green)
+
+
+Kus‑to‑Go is a PowerShell‑based tool that automates the discovery and extraction of **Kusto (Azure Data Explorer)** metadata across large, multi‑cluster environments. It authenticates to Azure, walks each cluster, retrieves schema information, and produces a clean Excel workbook per cluster.
+
+This project is built for engineers who need a fast, repeatable, and auditable way to inventory Kusto schema at scale.
 
 ---
 
 ## Table of Contents
 
-- [FAQ](#faq)  
-  - [What is this?](#what-is-this)  
-  - [What is *Kusto Metadata*?](#what-is-kusto-metadata-do-you-mean-the-data-stored-in-the-tables)  
-- [How to use `kus-to-go.ps1`](#how-to-use-kus-to-gops1)  
-  - [Requirements](#requirements)  
-  - [Retrieve an access token for Kusto](#retrieve-an-access-token-for-kusto)  
-  - [Generating a `kusto_connections.xml` file](#generating-a-kusto_connectionsxml-file)  
-  - [Expected file structure](#expected-file-structure)  
-  - [Run the script](#run-the-script)  
-  - [Get the output files](#get-the-output-files)  
-  - [Considerations](#considerations)  
-- [Data Manipulation](#data-manipulation)  
-  - [`compress.ps1`](#compressps1)  
+- [Overview](#overview)  
+- [What Kus‑to‑Go Scrapes](#what-kus-to-go-scrapes)  
+- [Requirements](#requirements)  
+- [Generating `kusto_connections.xml`](#generating-kusto_connectionsxml)  
+- [Running the Script](#running-the-script)  
+- [Output Structure](#output-structure)  
+- [Considerations](#considerations)
+- [AI Disclaimer](#ai-disclaimer)
 
 ---
 
-## FAQ
+## Overview
 
-### What is this?
+Kus‑to‑Go automates the process of walking a Kusto environment:
 
-Kus-to-go, or "Kusto-to-go", is a set of scripts that help facilitate the scraping and compiling of Kusto metadata.
+1. Authenticate to Azure and obtain a Kusto access token  
+2. Parse a `kusto_connections.xml` file exported from Kusto Explorer  
+3. Iterate each cluster  
+4. Retrieve databases  
+5. Retrieve tables  
+6. Retrieve columns  
+7. Write all metadata to an Excel workbook per cluster  
 
-### What is *Kusto Metadata*? Do you mean the data stored in the tables?
+Each workbook contains one row per table:
 
-No. The metadata describes the structure and schema of the Kusto environment.  
-Data like column names of tables, the database that holds the table, and its parent cluster is the core of what is being scraped.  
-
-One thing the script does **not** collect is statistics (size of the cluster/DB/table, number of rows, or number of requests).  
-The primary focus of this script is to break down the schema of a large multi-cluster Kusto environment.
-
----
-
-## How to use `kus-to-go.ps1`
-
-### Requirements
-
-- `kusto_connections.xml` file containing a list of Kusto cluster endpoints (exported from Kusto Explorer).  
-- `access_token` file containing an access token for your target Kusto environment.
-- `output_raw\` folder in the same directory as kust-to-go.ps1. This will be ignored via .gitignore. Autocreated if not present.
-- `Logs\` folder in the same directory as kust-to-go.ps1. This will be ignored via .gitignore. Autocreated if not present.
-
-### Retrieve an access token for Kusto
-
-> This step has been removed in current build.
-
-To gain an access token, run the following in the Azure CLI:
-
-```bash
-az login
-az account get-access-token --resource "https://api.kusto.windows.net" --query "accessToken"
+```
+Cluster | Cluster-URI | Database | Table | Columns | Details
 ```
 
-When running `az login`, you will be prompted to select a subscription.  
-Which one is chosen does not matter, as long as it is in the tenant attached to the Kusto cluster.  
-No subscription calls will be made; this is just a requirement of using `az login`.
-
-This token is only valid for one hour.  
-If the script takes longer than one hour, you will need to update the `access_token` file.
+This makes it easy to audit schema, compare clusters, or feed downstream automation.
 
 ---
 
-### Generating a `kusto_connections.xml` file
+## What Kus‑to‑Go Scrapes
 
-> This step requires you to already have Kusto Explorer set up and working with the target Kusto clusters.
+Kus‑to‑Go collects **metadata**, not data.
 
-1. Open **Kusto Explorer** and select the **Connections** tab.  
-2. Find the **Export Connections** option on the second panel from the left.  
-3. Save the file to the current directory as `kusto_connections.xml`.  
+It retrieves:
 
-As of now, the file name needs to be `kusto_connections.xml`. Later builds will allow parameterization.  
+- Cluster name & URI  
+- Database names  
+- Table names  
+- Column names  
 
-Please note that all connections in the XML file will be attempted during scraping.  
-If you do not want a connection scraped, manually remove it from the file.
+It does **not** retrieve:
 
----
+- Row counts  
+- Table sizes  
+- Query statistics  
+- Data stored in tables  
 
-### Expected file structure
-
-```text
-kus-to-go/
-|
-|- ...
-|- Logs/
-|- output_raw/
-|- kusto_connections.xml
-|- kus-to-go.ps1
-|- README.md
-|- ...
-```
+The goal is to map the *shape* of your Kusto environment, not its contents.
 
 ---
 
-### Run the script
+## Requirements
+
+- PowerShell 5+  
+- Microsoft Excel installed (COM automation is required)  
+- A valid Azure AD tenant ID  
+- A `kusto_connections.xml` file exported from Kusto Explorer  
+
+The script automatically creates:
+
+- `./logs/`  
+- `./output/`  
+
+---
+
+## Generating `kusto_connections.xml`
+
+1. Open **Kusto Explorer**  
+2. Go to the **Connections** tab  
+3. Select **Export Connections**  
+4. Save the file as `kusto_connections.xml` in the same directory as `kus-to-go.ps1`  
+
+All connections in the file will be scraped.  
+Remove any you do not want included.
+
+---
+
+## Running the Script
+
+Basic usage:
 
 ```powershell
-.\kus-to-go.ps1
+.\kus-to-go.ps1 -TenantId "<your-tenant-id>"
 ```
-Or
+
+Optional parameters:
+
+- `-LogLevel INFO|WARN|ERROR|DEBUG`  
+- `-LogDir <path>`  
+- `-Output <path>`  
+- `-ConnectionsXML <path>`  
+- `-Force` (re-scrape even if output file exists)  
+- `-Visualize` (show Excel windows instead of running hidden)
+
+Example:
 
 ```powershell
-.\kust-to-go.ps1 -tenantID <your superfly tenantID>
+.\kus-to-go.ps1 -TenantId "00000000-0000-0000-0000-000000000000" -Visualize
 ```
 
 ---
 
-### Get the output files
+## Output Structure
 
-Per cluster, a `.json` file will be created under `$PWD/output_raw`.  
-This makes it easier to prune unneeded cluster metadata, but the dataset will be segmented.  
+For each cluster, Kus‑to‑Go generates:
 
-Using the scripts under `data_manipulation`, you can compile all smaller files into one monolithic file.  
-To learn more, see [Data Manipulation](#data-manipulation).
+```
+./output/<cluster-name>.xlsx
+```
+
+Each workbook contains:
+
+- One sheet  
+- One row per table  
+- Columns:  
+  - Cluster  
+  - Cluster-URI  
+  - Database  
+  - Table  
+  - Columns (comma‑separated)  
+  - Details (reserved for future use)
+
+This replaces all previous JSON‑based output formats.
 
 ---
 
-### Considerations
+## Considerations
 
-- Depending on the size of your Kusto environment, this could take some time.  
-- If the script encounters any 401 errors, it will assume the access token has expired.  
-  When this occurs, the script will pause and expect you to manually update the file.  
-  Once done, you can return to the script and hit `Enter` to continue.
+- Large Kusto environments may take significant time to scrape  
+- 401 responses trigger token refresh  
+- 429 responses trigger exponential backoff  
+- Blacklist filtering removes known noise tables  
+- Excel must remain installed and functional for COM automation  
 
 ---
 
-## Data Manipulation
+# AI disclaimer
 
-### `compress.ps1`
+AI was used to generate the documention for most functions and this very readme. 
+However all code was human written and reviewed. "Vibe coded" PRs will not be merged.
 
-This script compresses the raw output JSON into a single JSON array.  
-It contains a `-filter` parameter that allows granular selection of the raw JSON data.
+---
+
+Kus‑to‑Go is designed to be a reliable, repeatable tool for understanding the structure of complex Kusto deployments. 
+
+Contributions and improvements are welcome.
